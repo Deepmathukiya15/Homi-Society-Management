@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { BadgeCheck, Ban, CheckCheck, Clock, Mail, Phone, RefreshCw, UserCheck, UserRound, XCircle } from 'lucide-react';
-import { Button, EmptyState, Pill, SectionCard, StatCard } from '../../components/ui.jsx';
+import { Button, EmptyState, Pill, SectionCard, Select, StatCard } from '../../components/ui.jsx';
 import { authApi } from '../../lib/api.js';
 import { useToast } from '../../context/ToastContext.jsx';
 import { formatMobile } from '../../lib/format.js';
@@ -86,16 +86,16 @@ export default function AdminApprovals({ onChanged }) {
         subtitle="New residents and guards are created with PENDING status — they can sign in only after you approve them."
         action={
           <div className="flex items-center gap-2">
-            <select
+            <Select
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              className="text-[11px] font-semibold rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-slate-700"
+              className="!w-auto !text-[11px] font-semibold !py-2 !px-2.5"
             >
               <option value="PENDING">Pending</option>
               <option value="APPROVED">Approved</option>
               <option value="REJECTED">Rejected</option>
               <option value="ALL">All accounts</option>
-            </select>
+            </Select>
             <Button variant="outline" size="sm" icon={RefreshCw} onClick={load} disabled={loading}>
               Refresh
             </Button>

@@ -121,9 +121,22 @@ export function Input({ className = '', ...props }) {
   return <input className={`${controlClass} ${className}`} {...props} />;
 }
 
-export function Select({ className = '', children, ...props }) {
+const SELECT_ARROW =
+  'url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2220%22 height=%2220%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23647569%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22m6 9 6 6 6-6%22/%3E%3C/svg%3E")';
+
+export function Select({ className = '', children, style, ...props }) {
   return (
-    <select className={`${controlClass} appearance-none ${className}`} {...props}>
+    <select
+      className={`${controlClass} appearance-none bg-no-repeat !pr-10 ${className}`}
+      style={{
+        backgroundImage: SELECT_ARROW,
+        backgroundPosition: 'right 0.75rem center',
+        backgroundSize: '1rem 1rem',
+        paddingRight: '2.5rem',
+        ...style,
+      }}
+      {...props}
+    >
       {children}
     </select>
   );
