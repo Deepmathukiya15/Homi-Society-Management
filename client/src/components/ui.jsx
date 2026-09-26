@@ -164,9 +164,9 @@ export function EmptyState({ icon: Icon, title, message, action }) {
 export function Modal({ open, onClose, title, subtitle, icon: Icon, children, footer, maxWidth = 'max-w-lg' }) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto animate-fade-in">
-      <div className={`bg-white border border-slate-200 rounded-2xl shadow-xl w-full ${maxWidth} my-6 text-slate-800 animate-rise`}>
-        <div className="flex items-start justify-between gap-4 p-5 border-b border-slate-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs overflow-hidden animate-fade-in">
+      <div className={`bg-white border border-slate-200 rounded-2xl shadow-xl w-full ${maxWidth} max-h-[calc(100dvh-1.5rem)] flex flex-col overflow-hidden text-slate-800 animate-rise`}>
+        <div className="flex items-start justify-between gap-4 p-5 border-b border-slate-100 shrink-0">
           <div className="flex items-center gap-3">
             {Icon && (
               <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
@@ -182,8 +182,8 @@ export function Modal({ open, onClose, title, subtitle, icon: Icon, children, fo
             <X className="w-4 h-4" />
           </button>
         </div>
-        <div className="p-5">{children}</div>
-        {footer && <div className="px-5 py-4 border-t border-slate-100 bg-slate-50/70 rounded-b-2xl">{footer}</div>}
+        <div className="p-5 min-h-0 overflow-y-auto overscroll-contain flex-1">{children}</div>
+        {footer && <div className="px-5 py-4 border-t border-slate-100 bg-slate-50/70 shrink-0">{footer}</div>}
       </div>
     </div>
   );

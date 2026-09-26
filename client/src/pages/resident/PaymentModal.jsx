@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { BadgeCheck, CreditCard, Landmark, Lock, QrCode, ShieldCheck, Smartphone } from 'lucide-react';
-import { Button, DataRow, Field, Modal, Select } from '../../components/ui.jsx';
+import { Button, DataRow, Modal } from '../../components/ui.jsx';
 import { paymentApi } from '../../lib/api.js';
 import { useToast } from '../../context/ToastContext.jsx';
 import { inr } from '../../lib/format.js';
@@ -189,23 +189,17 @@ export default function PaymentModal({ bill, open, onClose, onPaid }) {
 
         {stage === 'SELECT' && (
           <>
-            <Field label="Select Payment Mode">
-              <Select value={mode} onChange={(e) => setMode(e.target.value)}>
-                {PAYMENT_MODES.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.label} — {m.hint}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-
-            <div className="grid grid-cols-3 gap-2">
-              {PAYMENT_MODES.map((m) => {
+            <div className="space-y-2">
+              <p className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">Choose Payment Method</p>
+              <div role="group" aria-label="Choose payment method" className="grid grid-cols-3 gap-2">
+                {PAYMENT_MODES.map((m) => {
                 const Icon = MODE_ICONS[m.id];
                 const active = mode === m.id;
                 return (
                   <button
                     key={m.id}
+                    type="button"
+                    aria-pressed={active}
                     onClick={() => setMode(m.id)}
                     className={`flex flex-col items-center gap-1.5 py-3 rounded-xl border text-[11px] font-bold transition-all ${
                       active
@@ -217,7 +211,8 @@ export default function PaymentModal({ bill, open, onClose, onPaid }) {
                     {m.label}
                   </button>
                 );
-              })}
+                })}
+              </div>
             </div>
 
             {mode === 'UPI' && (

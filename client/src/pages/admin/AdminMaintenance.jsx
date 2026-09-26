@@ -15,6 +15,7 @@ import { maintenanceApi, paymentApi } from '../../lib/api.js';
 import { useToast } from '../../context/ToastContext.jsx';
 import { BILL_PILL, compactInr, dateShort, inr } from '../../lib/format.js';
 import { useSocket } from '../../context/SocketContext.jsx';
+import { downloadInvoicePdf } from '../../lib/invoicePdf.js';
 
 export default function AdminMaintenance({ onRunCron, cronRunning }) {
   const toast = useToast();
@@ -54,6 +55,15 @@ export default function AdminMaintenance({ onRunCron, cronRunning }) {
     const off = on('bill_paid', () => load());
     return () => off();
   }, [on, load]);
+
+  const downloadInvoice = async (bill) => {
+    try {
+      await downloadInvoicePdf(bill);
+      toast.success('Invoice PDF Downloaded', `${bill.month} ${bill.year} • Flat ${bill.flatId}`);
+    } catch (err) {
+      toast.alert('Invoice Download Failed', err.message || 'Could not generate the invoice PDF.');
+    }
+  };
 
   const recordOffline = async (bill) => {
     try {
@@ -171,19 +181,30 @@ export default function AdminMaintenance({ onRunCron, cronRunning }) {
                   </td>
                   <td className="py-3.5 px-4 font-mono text-[11px] text-slate-500">{bill.paymentTxnid || '—'}</td>
                   <td className="py-3.5 px-4">
-                    {bill.status === 'PAID' ? (
-                      <span className="text-[10px] font-bold text-slate-400 uppercase">
-                        {bill.paymentMode || 'PAID'}
-                      </span>
-                    ) : (
+                    <div className="flex items-center gap-3 min-w-max">
                       <button
-                        onClick={() => recordOffline(bill)}
-                        className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 uppercase tracking-wide"
-                        title="Record a cash / cheque settlement collected at the society office"
+                        type="button"
+                        onClick={() => downloadInvoice(bill)}
+                        className="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-600 hover:text-indigo-800 uppercase tracking-wide"
+                        title="Download this maintenance invoice as a PDF"
                       >
-                        Record Offline
+                        <Download className="w-3.5 h-3.5" /> PDF
                       </button>
-                    )}
+                      {bill.status === 'PAID' ? (
+                        <span className="text-[10px] font-bold text-slate-400 uppercase">
+                          {bill.paymentMode || 'PAID'}
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => recordOffline(bill)}
+                          className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 uppercase tracking-wide"
+                          title="Record a cash / cheque settlement collected at the society office"
+                        >
+                          Record Offline
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

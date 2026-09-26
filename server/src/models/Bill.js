@@ -15,6 +15,7 @@ const billSchema = new mongoose.Schema(
     status: { type: String, enum: ['PAID', 'PENDING', 'OVERDUE'], default: 'PENDING' },
     dueDate: { type: Date, required: true },
     paymentTxnid: { type: String },
+    razorpayOrderId: { type: String },
     paymentMode: { type: String }, // UPI / CARD / NETBANKING / RAZORPAY
     paidAt: { type: Date },
     generatedBy: { type: String, default: 'CRON' }, // CRON | ADMIN

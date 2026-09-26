@@ -5,20 +5,20 @@ import PaymentModal from './PaymentModal.jsx';
 import { maintenanceApi } from '../../lib/api.js';
 import { useToast } from '../../context/ToastContext.jsx';
 import { BILL_PILL, compactInr, dateShort, inr } from '../../lib/format.js';
+import { downloadInvoicePdf } from '../../lib/invoicePdf.js';
 
 export default function ResidentBills({ onChanged }) {
   const toast = useToast();
   const [bills, setBills] = useState([]);
-  const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(null);
 
   const load = async () => {
     setLoading(true);
     try {
-      const [ledger, s] = await Promise.all([maintenanceApi.bills({}), maintenanceApi.stats()]);
-      setBills(ledger.bills);
-      setStats(s.stats);
+      // Residents can read only their own invoices; the society-wide stats route is admin-only.
+      const ledger = await maintenanceApi.bills({});
+      setBills(ledger.bills || []);
     } catch (err) {
       toast.alert('Billing Error', err.message);
     } finally {
@@ -40,33 +40,13 @@ export default function ResidentBills({ onChanged }) {
   const totalDue = unpaid.reduce((s, b) => s + Number(b.amount || 0), 0);
   const totalPaid = paid.reduce((s, b) => s + Number(b.amount || 0), 0);
 
-  const downloadInvoice = (bill) => {
-    const lines = [
-      'HOMI — Integrated Home & Community Management Solutions',
-      'Khodaldham Society, Ahmedabad',
-      '----------------------------------------------------------',
-      `Invoice No   : ${bill._id.slice(-8).toUpperCase()}`,
-      `Flat ID      : ${bill.flatId}`,
-      `Resident     : ${bill.residentName}`,
-      `Billing      : ${bill.month} ${bill.year}`,
-      `Due Date     : ${dateShort(bill.dueDate)}`,
-      '----------------------------------------------------------',
-      `Base Maintenance : ${inr(bill.baseMaintenance)}`,
-      `Parking Charge   : ${inr(bill.parkingCharge)}`,
-      `Water Charge     : ${inr(bill.waterCharge)}`,
-      `Security Charge  : ${inr(bill.securityCharge)}`,
-      '----------------------------------------------------------',
-      `TOTAL PAYABLE    : ${inr(bill.amount)}`,
-      `Status           : ${bill.status}`,
-      `Txn Reference    : ${bill.paymentTxnid || '—'}`,
-    ].join('\n');
-    const url = URL.createObjectURL(new Blob([lines], { type: 'text/plain' }));
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `HOMI-${bill.flatId}-${bill.month}-${bill.year}-invoice.txt`;
-    link.click();
-    URL.revokeObjectURL(url);
-    toast.success('Invoice Downloaded', `${bill.month} ${bill.year} invoice saved to your device.`);
+  const downloadInvoice = async (bill) => {
+    try {
+      await downloadInvoicePdf(bill);
+      toast.success('Invoice PDF Downloaded', `${bill.month} ${bill.year} invoice saved as a PDF.`);
+    } catch (err) {
+      toast.alert('Invoice Download Failed', err.message || 'Could not generate the invoice PDF.');
+    }
   };
 
   return (
