@@ -78,10 +78,10 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = useCallback(
-    async (email, password, role) => {
+    async (email, password) => {
       setLoading(true);
       try {
-        const data = await authApi.login({ email, password, role });
+        const data = await authApi.login({ email, password });
         applySession(data);
         toast.success('Welcome back', `${data.user.name} • ${data.user.role} portal unlocked`);
         return data.user;

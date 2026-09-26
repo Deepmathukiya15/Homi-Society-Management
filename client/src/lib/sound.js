@@ -1,18 +1,48 @@
 /** Tiny WebAudio alert tones — no external audio assets, works fully offline. */
 let ctx = null;
 
-const tone = (freq, duration, { type = 'sine', gain = 0.05, delay = 0 } = {}) => {
+/**
+ * Browsers create an AudioContext in the "suspended" state until the user has
+ * interacted with the page. The old code cached the first context forever — so
+ * if the very first tone attempt happened before a click/tap (e.g. a socket
+ * event landing on a freshly loaded tab), every later chime/siren stayed
+ * silent. We now resume the context on each play AND unlock it on the first
+ * user gesture.
+ */
+const unlockEvents = ['pointerdown', 'touchstart', 'click', 'keydown'];
+
+const unlockAudio = () => {
+  ctx?.resume?.()?.catch(() => {});
+};
+
+const ensureCtx = () => {
   try {
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    if (!AudioCtx) return;
-    ctx = ctx || new AudioCtx();
-    const osc = ctx.createOscillator();
-    const vol = ctx.createGain();
+    if (!AudioCtx) return null;
+    if (!ctx) {
+      ctx = new AudioCtx();
+      unlockEvents.forEach((evt) =>
+        window.addEventListener(evt, unlockAudio, { once: true, passive: true })
+      );
+    }
+    if (ctx.state === 'suspended') ctx.resume()?.catch(() => {});
+    return ctx;
+  } catch {
+    return null;
+  }
+};
+
+const tone = (freq, duration, { type = 'sine', gain = 0.05, delay = 0 } = {}) => {
+  try {
+    const ac = ensureCtx();
+    if (!ac) return;
+    const osc = ac.createOscillator();
+    const vol = ac.createGain();
     osc.type = type;
     osc.frequency.value = freq;
     vol.gain.value = gain;
-    osc.connect(vol).connect(ctx.destination);
-    const start = ctx.currentTime + delay;
+    osc.connect(vol).connect(ac.destination);
+    const start = ac.currentTime + delay;
     osc.start(start);
     vol.gain.setValueAtTime(gain, start);
     vol.gain.exponentialRampToValueAtTime(0.0001, start + duration);

@@ -125,7 +125,7 @@ export const register = asyncHandler(async (req, res) => {
 
 /** POST /api/auth/login */
 export const login = asyncHandler(async (req, res) => {
-  const { email, password, role } = req.body;
+  const { email, password } = req.body;
   if (!email || !password) {
     res.status(400);
     throw new Error('Email and password are required');
@@ -136,11 +136,6 @@ export const login = asyncHandler(async (req, res) => {
     res.status(401);
     throw new Error('Authentication failed. Please check details.');
   }
-  if (role && user.role !== role) {
-    res.status(403);
-    throw new Error(`This account is registered as ${user.role}. Select the ${user.role} portal and try again.`);
-  }
-
   const stored = user.password;
   const ok = await bcrypt.compare(String(password), stored);
   if (!ok) {

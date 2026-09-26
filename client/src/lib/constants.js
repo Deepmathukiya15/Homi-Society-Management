@@ -47,7 +47,7 @@ export const SOS_CATEGORIES = [
   'Security Threat',
   'Lift Stuck / Malfunction',
   'Noise / Disturbance',
-  'Other / Meeting',
+  'Other / Miscellaneous',
 ];
 
 export const PAYMENT_MODES = [

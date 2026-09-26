@@ -151,6 +151,7 @@ export default function Login() {
             </span>
           </div>
 
+          {mode === 'REGISTER' && (
           <div className="space-y-2.5">
             <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">Select Role</div>
             <div className="grid grid-cols-3 gap-1.5 bg-slate-100 p-1.5 rounded-2xl">
@@ -174,6 +175,7 @@ export default function Login() {
             </div>
             <p className="text-[11px] text-slate-500 font-medium text-center">{ROLE_META[role].blurb}</p>
           </div>
+          )}
 
           <div className="flex bg-slate-100 p-1.5 rounded-2xl">
             {['LOGIN', 'REGISTER'].map((item) => (
@@ -327,10 +329,12 @@ export default function Login() {
               </div>
             )}
 
-            <Button type="submit" size="xl" className="w-full" icon={RoleIcon} disabled={loading}>
+            <Button type="submit" size="xl" className="w-full" icon={mode === 'LOGIN' ? Lock : RoleIcon} disabled={loading}>
               {loading
                 ? 'Verifying…'
-                : `${mode === 'LOGIN' ? 'Sign In as' : 'Register as'} ${ROLE_META[role].label.toUpperCase()}`}
+                : mode === 'LOGIN'
+                  ? 'Sign In'
+                  : `Register as ${ROLE_META[role].label.toUpperCase()}`}
             </Button>
           </form>
           )}

@@ -19,6 +19,7 @@ import { useToast } from '../context/ToastContext.jsx';
 import { ROLE_META, SOS_CATEGORIES } from '../lib/constants.js';
 import { initials } from '../lib/format.js';
 import { visitorApi } from '../lib/api.js';
+import { playSiren } from '../lib/sound.js';
 
 const HOME_BY_ROLE = { ADMIN: '/admin', RESIDENT: '/resident', GUARD: '/guard' };
 
@@ -62,6 +63,7 @@ export default function TopHeader() {
     setSending(true);
     try {
       const res = await visitorApi.sos({ category: sosCategory, note: sosNote });
+      playSiren(); // audible confirmation on the device that raised the alarm
       toast.alert(`SOS • ${sosCategory}`, res.message);
       setSosOpen(false);
       setSosNote('');
@@ -73,6 +75,7 @@ export default function TopHeader() {
   };
 
   return (
+    <>
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200">
       <div className="max-w-[1600px] mx-auto px-3 sm:px-5 h-16 flex items-center justify-between gap-3">
         <button onClick={() => navigate(HOME_BY_ROLE[user?.role] || '/')} className="flex items-center gap-3 min-w-0">
@@ -200,6 +203,7 @@ export default function TopHeader() {
           </div>
         </div>
       </div>
+      </header>
 
       <Modal
         open={sosOpen}
@@ -248,6 +252,6 @@ export default function TopHeader() {
           </div>
         </div>
       </Modal>
-    </header>
+    </>
   );
 }
