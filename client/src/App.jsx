@@ -10,6 +10,7 @@ import Login from './pages/Login.jsx';
 import AdminPortal from './pages/admin/AdminPortal.jsx';
 import ResidentPortal from './pages/resident/ResidentPortal.jsx';
 import GuardPortal from './pages/guard/GuardPortal.jsx';
+import CommitteePortal from './pages/committee/CommitteePortal.jsx';
 import ProtectedRoute, { homeFor } from './routes/ProtectedRoute.jsx';
 
 function Shell() {
@@ -47,6 +48,14 @@ function Shell() {
             <ProtectedRoute role="GUARD">
               <GuardPortal />
             </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/committee/*"
+          element={
+            user && (user.role === 'ADMIN' || user.isCommitteeMember)
+              ? <CommitteePortal />
+              : <Navigate to={user ? homeFor(user.role) : '/login'} replace />
           }
         />
         <Route path="*" element={<Navigate to={user ? homeFor(user.role) : '/login'} replace />} />

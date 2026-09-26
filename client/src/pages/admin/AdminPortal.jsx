@@ -13,6 +13,7 @@ import {
   Wrench,
   Loader2,
   UserCheck,
+  Users,
 } from 'lucide-react';
 import { LogoBadge } from '../../components/Logo.jsx';
 import { Button } from '../../components/ui.jsx';
@@ -28,6 +29,7 @@ import AdminApprovals from './AdminApprovals.jsx';
 import AdminGateFeed from './AdminGateFeed.jsx';
 import AdminNotices from './AdminNotices.jsx';
 import AdminComplaints from './AdminComplaints.jsx';
+import AdminCommittee from './AdminCommittee.jsx';
 
 const ICONS = {
   OVERVIEW: Gauge,
@@ -36,6 +38,7 @@ const ICONS = {
   MAINTENANCE: ReceiptText,
   GATE_LOGS: ScanLine,
   NOTICES: Bell,
+  COMMITTEE: Users,
   COMPLAINTS: Wrench,
 };
 
@@ -222,6 +225,7 @@ export default function AdminPortal() {
         {tab === 'MAINTENANCE' && <AdminMaintenance key={`${refreshKey}-${maintenanceSignal}`} onRunCron={runCron} cronRunning={cronRunning} />}
         {tab === 'GATE_LOGS' && <AdminGateFeed key={refreshKey} />}
         {tab === 'NOTICES' && <AdminNotices key={refreshKey} openSignal={noticeSignal} />}
+        {tab === 'COMMITTEE' && <AdminCommittee key={refreshKey} />}
         {tab === 'COMPLAINTS' && <AdminComplaints key={refreshKey} />}
 
         <footer className="mt-8 pt-5 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-2 text-[10px] text-slate-400 font-medium">

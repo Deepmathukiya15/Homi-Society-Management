@@ -191,7 +191,7 @@ async function seedVisitors() {
 export async function runSeed({ force = false } = {}) {
   if (force) {
     clearSnapshot();
-    for (const model of ['User', 'Flat', 'Visitor', 'Bill', 'Notice', 'Complaint', 'GatePass']) {
+    for (const model of ['User', 'Flat', 'Visitor', 'Bill', 'Notice', 'Complaint', 'GatePass', 'Meeting']) {
       await db[model].deleteMany({});
     }
   }
@@ -203,7 +203,7 @@ export async function runSeed({ force = false } = {}) {
   await seedPasses();
   await seedVisitors();
 
-  const [flats, users, bills, notices, complaints, visitors, passes] = await Promise.all([
+  const [flats, users, bills, notices, complaints, visitors, passes, meetings] = await Promise.all([
     db.Flat.countDocuments({}),
     db.User.countDocuments({}),
     db.Bill.countDocuments({}),
@@ -211,6 +211,7 @@ export async function runSeed({ force = false } = {}) {
     db.Complaint.countDocuments({}),
     db.Visitor.countDocuments({}),
     db.GatePass.countDocuments({}),
+    db.Meeting.countDocuments({}),
   ]);
 
   const [occupied, vacant] = await Promise.all([
@@ -219,7 +220,7 @@ export async function runSeed({ force = false } = {}) {
   ]);
 
   flushStore(); // persist immediately so a restart keeps this exact seed
-  return { flats, occupied, vacant, users, bills, notices, complaints, visitors, passes };
+  return { flats, occupied, vacant, users, bills, notices, complaints, visitors, passes, meetings };
 }
 
 /** Called on server boot — only seeds when the society database is empty. */

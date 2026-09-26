@@ -30,6 +30,14 @@ export const protect = async (req, res, next) => {
 };
 
 /** Role-Based Access Control middleware → authorize('ADMIN', 'GUARD') */
+export const authorizeCommittee = (req, res, next) => {
+  if (!req.user) return res.status(401).json({ success: false, message: 'Not authorized' });
+  if (req.user.role !== 'ADMIN' && !req.user.isCommitteeMember) {
+    return res.status(403).json({ success: false, message: 'Committee membership is required for this action' });
+  }
+  next();
+};
+
 export const authorize = (...roles) => (req, res, next) => {
   if (!req.user) return res.status(401).json({ success: false, message: 'Not authorized' });
   if (!roles.includes(req.user.role)) {

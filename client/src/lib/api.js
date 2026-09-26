@@ -84,8 +84,10 @@ export const authApi = {
   me: () => api.get('/auth/me').then((r) => r.data),
   demoAccounts: () => api.get('/auth/demo-accounts').then((r) => r.data),
   /** ADMIN — approval queue for self-registered residents & guards. */
-  pendingUsers: () => api.get('/auth/pending-users').then((r) => r.data),
+  pendingUsers: (params) => api.get('/auth/pending-users', { params }).then((r) => r.data),
   setApproval: (userId, status) => api.patch(`/auth/users/${userId}/approval`, { status }).then((r) => r.data),
+  setCommitteeMembership: (userId, isCommitteeMember) =>
+    api.patch(`/auth/users/${userId}/committee`, { isCommitteeMember }).then((r) => r.data),
 };
 
 /** ── Society modules ──────────────────────────────────────────────────── */
@@ -123,6 +125,13 @@ export const noticeApi = {
   create: (payload) => api.post('/notices', payload).then((r) => r.data),
   remove: (id) => api.delete(`/notices/${id}`).then((r) => r.data),
   togglePin: (id) => api.patch(`/notices/${id}/pin`).then((r) => r.data),
+};
+
+export const meetingApi = {
+  list: () => api.get('/meetings').then((r) => r.data),
+  create: (payload) => api.post('/meetings', payload).then((r) => r.data),
+  update: (id, payload) => api.patch(`/meetings/${id}`, payload).then((r) => r.data),
+  cancel: (id) => api.patch(`/meetings/${id}/cancel`).then((r) => r.data),
 };
 
 export const complaintApi = {

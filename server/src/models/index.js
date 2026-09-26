@@ -5,6 +5,7 @@ import Bill from './Bill.js';
 import Notice from './Notice.js';
 import Complaint from './Complaint.js';
 import GatePass from './GatePass.js';
+import Meeting from './Meeting.js';
 
-export { User, Flat, Visitor, Bill, Notice, Complaint, GatePass };
-export const mongooseModels = { User, Flat, Visitor, Bill, Notice, Complaint, GatePass };
+export { User, Flat, Visitor, Bill, Notice, Complaint, GatePass, Meeting };
+export const mongooseModels = { User, Flat, Visitor, Bill, Notice, Complaint, GatePass, Meeting };

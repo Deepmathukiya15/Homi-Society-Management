@@ -27,6 +27,7 @@ userSchema.methods.toSafeJSON = function toSafeJSON() {
     name: this.name,
     email: this.email,
     role: this.role,
+    isCommitteeMember: Boolean(this.isCommitteeMember),
     contactNumber: this.contactNumber,
     flatId: this.flatId,
     staffId: this.staffId,

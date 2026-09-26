@@ -47,7 +47,7 @@ export const SOS_CATEGORIES = [
   'Security Threat',
   'Lift Stuck / Malfunction',
   'Noise / Disturbance',
-  'Other / Miscellaneous',
+  'Other / Meeting',
 ];
 
 export const PAYMENT_MODES = [
@@ -63,6 +63,7 @@ export const ADMIN_TABS = [
   { id: 'MAINTENANCE', label: 'Maintenance & Billing' },
   { id: 'GATE_LOGS', label: 'Live Gate Feed' },
   { id: 'NOTICES', label: 'Digital Notices' },
+  { id: 'COMMITTEE', label: 'Committee Members' },
   { id: 'COMPLAINTS', label: 'Helpdesk Tickets' },
 ];
 
@@ -73,6 +74,7 @@ export const ADMIN_TITLES = {
   MAINTENANCE: ['Maintenance Accounts & Revenue Ledger', 'Khodaldham Society • Admin Control Panel'],
   GATE_LOGS: ['Real-Time Security Gate Pass Log Feed', 'Khodaldham Society • Admin Control Panel'],
   NOTICES: ['Digital Notice Board Management', 'Khodaldham Society • Admin Control Panel'],
+  COMMITTEE: ['Society Committee Members', 'Choose approved residents who can manage notices and meetings'],
   COMPLAINTS: ['Resident Helpdesk & Grievance Tickets', 'Khodaldham Society • Admin Control Panel'],
 };
 

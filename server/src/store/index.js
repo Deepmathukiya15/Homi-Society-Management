@@ -42,6 +42,7 @@ export const toSafeUser = (doc) => {
     name: user.name,
     email: user.email,
     role: user.role,
+    isCommitteeMember: Boolean(user.isCommitteeMember),
     contactNumber: user.contactNumber,
     flatId: user.flatId,
     staffId: user.staffId,

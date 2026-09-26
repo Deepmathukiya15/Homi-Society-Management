@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getUsers, setApproval } from '../controllers/userController.js';
+import { getUsers, setApproval, setCommitteeMembership } from '../controllers/userController.js';
 import { demoAccounts, demoLogin, login, me, register } from '../controllers/authController.js';
 import { authorize, protect } from '../middleware/auth.js';
 
@@ -12,5 +12,7 @@ router.get('/me', protect, me);
 
 // Admin approval queue for newly registered residents / guards (RBAC: ADMIN only)
 router.get('/pending-users', protect, authorize('ADMIN'), getUsers);
+router.get('/users', protect, authorize('ADMIN'), getUsers);
 router.patch('/users/:id/approval', protect, authorize('ADMIN'), setApproval);
+router.patch('/users/:id/committee', protect, authorize('ADMIN'), setCommitteeMembership);
 export default router;

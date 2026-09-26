@@ -26,7 +26,7 @@ export const createNotice = asyncHandler(async (req, res) => {
     isPinned: Boolean(isPinned),
     audience,
     wing,
-    postedBy: `${req.user.name} (Secretary)`,
+    postedBy: `${req.user.name} (${req.user.role === 'ADMIN' ? 'Secretary' : 'Committee'})`,
   });
 
   broadcast('notice_published', { notice, at: new Date().toISOString() });

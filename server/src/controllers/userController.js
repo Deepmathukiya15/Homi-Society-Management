@@ -39,6 +39,34 @@ export const getUsers = asyncHandler(async (req, res) => {
  * PATCH /api/users/:id/approval  (ADMIN)  { status: 'APPROVED' | 'REJECTED' }
  * The gate that lets a newly registered resident / guard sign in.
  */
+/** PATCH /api/auth/users/:id/committee (ADMIN) — assign/revoke committee access. */
+export const setCommitteeMembership = asyncHandler(async (req, res) => {
+  const user = await db.User.findById(req.params.id);
+  if (!user) {
+    res.status(404);
+    throw new Error('User account not found');
+  }
+  if (user.role !== 'RESIDENT' || (user.approvalStatus || 'APPROVED') !== 'APPROVED') {
+    res.status(400);
+    throw new Error('Only approved resident accounts can be committee members');
+  }
+  if (typeof req.body.isCommitteeMember !== 'boolean') {
+    res.status(400);
+    throw new Error('isCommitteeMember must be true or false');
+  }
+
+  const updated = await db.User.findByIdAndUpdate(
+    user._id,
+    { $set: { isCommitteeMember: req.body.isCommitteeMember } },
+    { new: true }
+  );
+  res.json({
+    success: true,
+    message: `${updated.name} ${updated.isCommitteeMember ? 'added to' : 'removed from'} the society committee`,
+    user: toSafeUser(updated),
+  });
+});
+
 export const setApproval = asyncHandler(async (req, res) => {
   const status = String(req.body.status || '').toUpperCase();
   if (!APPROVAL_STATES.includes(status)) {

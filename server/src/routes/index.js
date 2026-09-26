@@ -6,6 +6,7 @@ import maintenanceRoutes from './maintenanceRoutes.js';
 import noticeRoutes from './noticeRoutes.js';
 import complaintRoutes from './complaintRoutes.js';
 import paymentRoutes from './paymentRoutes.js';
+import meetingRoutes from './meetingRoutes.js';
 
 const router = Router();
 router.use('/auth', authRoutes);
@@ -15,5 +16,6 @@ router.use('/maintenance', maintenanceRoutes);
 router.use('/notices', noticeRoutes);
 router.use('/complaints', complaintRoutes);
 router.use('/payments', paymentRoutes);
+router.use('/meetings', meetingRoutes);
 
 export default router;

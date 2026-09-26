@@ -6,9 +6,7 @@ import {
   LogOut,
   Radio,
   RefreshCw,
-  ShieldAlert,
   Siren,
-  UserCog,
   Users,
 } from 'lucide-react';
 import Logo, { LogoBadge } from './Logo.jsx';
@@ -19,14 +17,13 @@ import { useToast } from '../context/ToastContext.jsx';
 import { ROLE_META, SOS_CATEGORIES } from '../lib/constants.js';
 import { initials } from '../lib/format.js';
 import { visitorApi } from '../lib/api.js';
-import { playSiren } from '../lib/sound.js';
 
 const HOME_BY_ROLE = { ADMIN: '/admin', RESIDENT: '/resident', GUARD: '/guard' };
 
 export default function TopHeader() {
   const navigate = useNavigate();
   const toast = useToast();
-  const { user, demoLogin, logout, loading } = useAuth();
+  const { user, logout } = useAuth();
   const { statusLabel, connected } = useSocket();
   const [menuOpen, setMenuOpen] = useState(false);
   const [sosOpen, setSosOpen] = useState(false);
@@ -45,25 +42,10 @@ export default function TopHeader() {
 
   const meta = ROLE_META[user?.role] || ROLE_META.RESIDENT;
 
-  const switchRole = async (role) => {
-    setMenuOpen(false);
-    if (role === user?.role) {
-      navigate(HOME_BY_ROLE[role] || '/');
-      return;
-    }
-    try {
-      await demoLogin(role);
-      navigate(HOME_BY_ROLE[role] || '/');
-    } catch (err) {
-      toast.alert('Switcher Failed', err.message);
-    }
-  };
-
   const broadcastSos = async () => {
     setSending(true);
     try {
       const res = await visitorApi.sos({ category: sosCategory, note: sosNote });
-      playSiren(); // audible confirmation on the device that raised the alarm
       toast.alert(`SOS • ${sosCategory}`, res.message);
       setSosOpen(false);
       setSosNote('');
@@ -75,7 +57,6 @@ export default function TopHeader() {
   };
 
   return (
-    <>
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200">
       <div className="max-w-[1600px] mx-auto px-3 sm:px-5 h-16 flex items-center justify-between gap-3">
         <button onClick={() => navigate(HOME_BY_ROLE[user?.role] || '/')} className="flex items-center gap-3 min-w-0">
@@ -137,51 +118,10 @@ export default function TopHeader() {
             {menuOpen && (
               <div className="absolute right-0 mt-2 w-64 bg-white border border-slate-200 rounded-2xl shadow-xl p-2 z-50 animate-fade-in text-slate-800">
                 <div className="px-3 py-2 border-b border-slate-100 mb-1">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                    Quick Demo Switcher (Viva)
-                  </div>
-                  <div className="text-xs text-slate-500 mt-0.5">Switch role to test different portals:</div>
+                  <div className="text-xs font-bold text-slate-900">{user?.name}</div>
+                  <div className="text-[10px] text-slate-500 mt-0.5">{user?.email}</div>
                 </div>
-                <div className="space-y-1">
-                  {[
-                    { role: 'ADMIN', label: 'Admin / Secretary', sub: 'Financials, Flats, Notices', icon: UserCog, tone: 'text-violet-600' },
-                    { role: 'RESIDENT', label: 'Society Member', sub: 'Bills, QR Pass, Approvals', icon: Users, tone: 'text-indigo-600' },
-                    { role: 'GUARD', label: 'Gate Security Guard', sub: 'Tablet Touch UI & QR Scanner', icon: ShieldAlert, tone: 'text-emerald-600' },
-                  ].map((item) => {
-                    const Icon = item.icon;
-                    const active = user?.role === item.role;
-                    return (
-                      <button
-                        key={item.role}
-                        onClick={() => switchRole(item.role)}
-                        disabled={loading}
-                        className={`w-full flex items-center justify-between p-2 rounded-xl text-xs font-medium text-left transition-colors ${
-                          active
-                            ? item.role === 'GUARD'
-                              ? 'bg-emerald-50 text-emerald-900 border border-emerald-200 font-semibold'
-                              : item.role === 'ADMIN'
-                                ? 'bg-violet-50 text-violet-900 border border-violet-200 font-semibold'
-                                : 'bg-indigo-50 text-indigo-900 border border-indigo-200 font-semibold'
-                            : 'hover:bg-slate-50 text-slate-700'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <Icon className={`w-4 h-4 ${item.tone}`} />
-                          <div>
-                            <div className="font-bold text-slate-900">{item.label}</div>
-                            <div className="text-[10px] text-slate-500">{item.sub}</div>
-                          </div>
-                        </div>
-                        {active && (
-                          <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded">
-                            ACTIVE
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-                <div className="pt-2 border-t border-slate-100 mt-2 space-y-1">
+                <div className="pt-1 space-y-1">
                   <button
                     onClick={() => {
                       setMenuOpen(false);
@@ -191,8 +131,23 @@ export default function TopHeader() {
                   >
                     <LayoutDashboard className="w-4 h-4 text-slate-500" /> Go to my dashboard
                   </button>
+                  {(user?.role === 'ADMIN' || user?.isCommitteeMember) && (
+                    <button
+                      onClick={() => {
+                        setMenuOpen(false);
+                        navigate('/committee');
+                      }}
+                      className="w-full flex items-center gap-2 p-2 rounded-xl text-xs font-medium text-violet-700 hover:bg-violet-50 transition-colors"
+                    >
+                      <Users className="w-4 h-4" /> Open Committee Panel
+                    </button>
+                  )}
                   <button
-                    onClick={() => logout()}
+                    onClick={() => {
+                      setMenuOpen(false);
+                      logout();
+                      navigate('/login', { replace: true });
+                    }}
                     className="w-full flex items-center gap-2 p-2 rounded-xl text-xs font-medium text-rose-600 hover:bg-rose-50 transition-colors"
                   >
                     <LogOut className="w-4 h-4" /> Sign Out
@@ -203,7 +158,6 @@ export default function TopHeader() {
           </div>
         </div>
       </div>
-      </header>
 
       <Modal
         open={sosOpen}
@@ -252,6 +206,6 @@ export default function TopHeader() {
           </div>
         </div>
       </Modal>
-    </>
+    </header>
   );
 }
