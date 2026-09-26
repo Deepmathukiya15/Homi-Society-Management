@@ -10,15 +10,14 @@ export default function ResidentGateActivity({ onChanged }) {
   const toast = useToast();
   const { on, connected } = useSocket();
   const [visitors, setVisitors] = useState([]);
-  const [stats, setStats] = useState(null);
   const [status, setStatus] = useState('ALL');
   const [busy, setBusy] = useState(null);
 
   const load = async () => {
     try {
-      const [logs, s] = await Promise.all([visitorApi.logs({}), visitorApi.stats()]);
-      setVisitors(logs.visitors);
-      setStats(s.stats);
+      // Resident logs are already scoped to their flat; society-wide stats are admin/guard only.
+      const logs = await visitorApi.logs({});
+      setVisitors(logs.visitors || []);
     } catch (err) {
       toast.alert('Gate Activity Error', err.message);
     }
@@ -55,14 +54,16 @@ export default function ResidentGateActivity({ onChanged }) {
 
   const filtered = status === 'ALL' ? visitors : visitors.filter((v) => v.approvalStatus === status);
   const pending = visitors.filter((v) => v.approvalStatus === 'PENDING');
+  const activeInside = visitors.filter((v) => !v.checkOutTime && ['APPROVED', 'PRE_APPROVED'].includes(v.approvalStatus));
+  const denied = visitors.filter((v) => v.approvalStatus === 'DENIED');
 
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Total Gate Entries" value={stats?.total ?? 0} sub="All-time log for your flat" icon={LogIn} tone="indigo" />
-        <StatCard label="Active Visitors Inside" value={stats?.activeVisitorsInside ?? 0} sub="Currently inside society" icon={Users} tone="emerald" />
-        <StatCard label="Awaiting Approval" value={stats?.pendingApprovals ?? 0} sub="Tap approve to admit" icon={Clock} tone="amber" />
-        <StatCard label="Denied at Gate" value={stats?.denied ?? 0} sub="Refused entries" icon={ShieldX} tone="rose" />
+        <StatCard label="Total Gate Entries" value={visitors.length} sub="All-time log for your flat" icon={LogIn} tone="indigo" />
+        <StatCard label="Active Visitors Inside" value={activeInside.length} sub="Currently inside society" icon={Users} tone="emerald" />
+        <StatCard label="Awaiting Approval" value={pending.length} sub="Tap approve to admit" icon={Clock} tone="amber" />
+        <StatCard label="Denied at Gate" value={denied.length} sub="Refused entries" icon={ShieldX} tone="rose" />
       </div>
 
       {pending.length > 0 && (
