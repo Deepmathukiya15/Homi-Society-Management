@@ -67,7 +67,7 @@ export default function AdminGateFeed() {
 
       <SectionCard className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <LiveDot
-          label={connected ? 'Live Socket.io Gate Telemetry Active' : 'Reconnecting to Socket.io…'}
+          label={connected ? 'Live gate updates active' : 'Reconnecting to gate updates…'}
           tone={connected ? 'emerald' : 'amber'}
         />
         <div className="flex items-center gap-2">

@@ -90,7 +90,7 @@ export default function ResidentGateActivity({ onChanged }) {
       )}
 
       <SectionCard className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <LiveDot label={connected ? 'Live Socket.io Gate Telemetry Active' : 'Reconnecting…'} tone={connected ? 'emerald' : 'amber'} />
+        <LiveDot label={connected ? 'Live gate updates active' : 'Reconnecting…'} tone={connected ? 'emerald' : 'amber'} />
         <Select value={status} onChange={(e) => setStatus(e.target.value)} className="!w-48 !py-1.5 !text-xs">
           {['ALL', 'PENDING', 'APPROVED', 'PRE_APPROVED', 'DENIED'].map((s) => (
             <option key={s} value={s}>

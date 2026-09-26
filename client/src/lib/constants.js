@@ -23,7 +23,7 @@ export const ROLE_META = {
     accent: 'emerald',
     chip: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     dot: 'bg-emerald-500',
-    blurb: 'Tablet touch UI & QR scanner terminal',
+    blurb: 'Visitor check-ins & QR pass scanning',
   },
 };
 

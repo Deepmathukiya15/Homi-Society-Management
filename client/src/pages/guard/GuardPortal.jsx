@@ -170,9 +170,8 @@ export default function GuardPortal() {
 
       <footer className="pt-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-2 text-[10px] text-slate-400 font-medium">
         <span className="flex items-center gap-2">
-          <Logo variant="icon" className="w-4 h-4" /> HOMI Gate Terminal • Tablet touch UI
+          <Logo variant="icon" className="w-4 h-4" /> HOMI Gate Terminal
         </span>
-        <span>Socket rooms: guard_feed • Main entrance barrier gate 1</span>
       </footer>
 
     </div>

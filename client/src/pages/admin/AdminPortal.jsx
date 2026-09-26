@@ -229,10 +229,8 @@ export default function AdminPortal() {
         {tab === 'COMPLAINTS' && <AdminComplaints key={refreshKey} />}
 
         <footer className="mt-8 pt-5 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-2 text-[10px] text-slate-400 font-medium">
-          <span className="flex items-center gap-1.5">
-            <Database className="w-3 h-3" /> MongoDB + Mongoose • Express REST API • Socket.io realtime
-          </span>
-          <span>HOMI © {new Date().getFullYear()} • Integrated Home &amp; Community Management Solutions</span>
+          <span>Integrated Home &amp; Community Management Solutions</span>
+          <span>HOMI © {new Date().getFullYear()}</span>
         </footer>
       </main>
 

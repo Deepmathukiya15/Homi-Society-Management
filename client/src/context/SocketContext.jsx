@@ -14,10 +14,10 @@ export const useSocket = () => {
 };
 
 const STATUS_LABEL = {
-  CONNECTING: 'Connecting to Socket.io…',
-  CONNECTED: 'Socket.io Connected: Live Gate Telemetry Active',
-  RECONNECTING: 'WS Reconnecting…',
-  OFFLINE: 'Socket.io Offline',
+  CONNECTING: 'Connecting to live gate updates…',
+  CONNECTED: 'Live gate updates connected',
+  RECONNECTING: 'Reconnecting to live updates…',
+  OFFLINE: 'Live updates offline',
 };
 
 export function SocketProvider({ children }) {

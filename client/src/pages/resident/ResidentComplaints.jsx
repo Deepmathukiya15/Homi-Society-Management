@@ -96,7 +96,7 @@ export default function ResidentComplaints({ onChanged }) {
           </Button>
           <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-[11px] text-slate-600 font-medium flex items-start gap-2">
             <AlertCircle className="w-3.5 h-3.5 mt-0.5 text-slate-400 shrink-0" />
-            Tickets are visible to the society admin instantly over Socket.io and appear in the helpdesk queue.
+            Your ticket is sent to the society admin and appears in the helpdesk queue.
           </div>
         </form>
       </SectionCard>

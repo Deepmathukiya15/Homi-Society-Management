@@ -142,7 +142,7 @@ export default function IncomingVisitorModal() {
           </div>
 
           <p className="text-[10px] text-slate-400 text-center font-medium flex items-center justify-center gap-1.5">
-            <UserCheck className="w-3 h-3" /> Decision is relayed to the guard tablet in under 50ms over Socket.io
+            <UserCheck className="w-3 h-3" /> Your decision is relayed to the gate team immediately.
           </p>
         </div>
       </div>

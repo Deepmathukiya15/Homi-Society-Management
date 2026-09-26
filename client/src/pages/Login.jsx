@@ -413,7 +413,7 @@ export default function Login() {
         <div className="flex flex-col items-center gap-2">
           <StructureChips />
           <p className="text-center text-[10px] text-slate-400 font-medium">
-            HOMI — Integrated Home &amp; Community Management Solutions • MERN Stack (MongoDB · Express · React · Node)
+            HOMI — Integrated Home &amp; Community Management Solutions
           </p>
         </div>
       </div>

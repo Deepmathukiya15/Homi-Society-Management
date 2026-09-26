@@ -141,7 +141,7 @@ export default function AdminNotices({ openSignal = 0 }) {
         open={open}
         onClose={() => setOpen(false)}
         title="Publish New Society Notice"
-        subtitle="Broadcast instantly to every resident portal over Socket.io"
+        subtitle="Published notices appear on resident portals right away"
         icon={Megaphone}
         footer={
           <div className="flex justify-end gap-2">

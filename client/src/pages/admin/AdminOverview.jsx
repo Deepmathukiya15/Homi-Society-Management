@@ -252,11 +252,7 @@ export default function AdminOverview({ onOpenTab }) {
             {!defaulters.length && <p className="text-xs text-slate-500">No outstanding dues. Perfect collection!</p>}
           </div>
           <div className="mt-4 pt-4 border-t border-slate-100">
-            <LiveDot label={connected ? 'Socket.io Gate Telemetry Active' : 'Socket.io reconnecting'} tone={connected ? 'emerald' : 'amber'} />
-            <p className="text-[10px] text-slate-500 mt-2 font-medium leading-relaxed">
-              Every gate event streams into rooms <code className="font-mono text-indigo-700">guard_feed</code> and{' '}
-              <code className="font-mono text-indigo-700">admin_feed</code> in real time.
-            </p>
+            <LiveDot label={connected ? 'Live gate updates active' : 'Reconnecting to gate updates'} tone={connected ? 'emerald' : 'amber'} />
           </div>
         </SectionCard>
       </div>

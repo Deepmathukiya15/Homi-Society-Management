@@ -166,7 +166,7 @@ export default function ResidentPortal() {
       {tab === 'COMPLAINTS' && <ResidentComplaints key={refreshKey} onChanged={() => setRefreshKey((k) => k + 1)} />}
 
       <footer className="pt-5 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-2 text-[10px] text-slate-400 font-medium">
-        <span>HOMI Resident Portal • Real-time gate approvals via Socket.io</span>
+        <span>HOMI Resident Portal</span>
         <span>Khodaldham Society, Ahmedabad • FY {new Date().getFullYear()}</span>
       </footer>
 

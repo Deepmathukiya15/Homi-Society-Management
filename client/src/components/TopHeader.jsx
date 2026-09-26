@@ -171,8 +171,7 @@ export default function TopHeader() {
         footer={
           <div className="flex items-center justify-between gap-3">
             <span className="text-[11px] text-slate-500 font-medium">
-              Socket channels: <code className="font-mono text-indigo-700">guard_feed</code> +{' '}
-              <code className="font-mono text-indigo-700">admin_feed</code>
+              Alerts will reach connected residents, guards and admins.
             </span>
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => setSosOpen(false)}>
@@ -204,8 +203,7 @@ export default function TopHeader() {
             />
           </Field>
           <div className="bg-rose-50 border border-rose-200 rounded-xl p-3 text-[11px] text-rose-800 font-medium leading-relaxed">
-            This broadcasts a live siren alert to every guard tablet and the admin command center through Socket.io. Use
-            only for genuine emergencies.
+            This sends an emergency alert to connected society members. Use only for genuine emergencies.
           </div>
         </div>
       </Modal>, document.body)}
