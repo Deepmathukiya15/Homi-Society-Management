@@ -23,17 +23,25 @@ const authPayload = (user, message) => ({
 
 /** POST /api/auth/register */
 export const register = asyncHandler(async (req, res) => {
-  const { name, email, password, role = 'RESIDENT', contactNumber, flatId, securityCode, staffId, familyMembers } = req.body;
+  const { name, email, password, role: requestedRole = 'RESIDENT', contactNumber, flatId, securityCode, staffId, familyMembers } = req.body;
+  const cleanName = String(name || '').trim();
+  const cleanEmail = String(email || '').trim().toLowerCase();
+  const normalizedRole = String(requestedRole || 'RESIDENT').toUpperCase();
+  const role = normalizedRole;
 
-  if (!name || !email || !password) {
+  if (!cleanName || !cleanEmail || !password) {
     res.status(400);
     throw new Error('Name, email and password are required');
   }
-  if (String(password).length < 6) {
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
     res.status(400);
-    throw new Error('Password must be at least 6 characters');
+    throw new Error('Enter a valid email address');
   }
-  if (!['RESIDENT', 'ADMIN', 'GUARD'].includes(role)) {
+  if (String(password).length < 6 || String(password).length > 128) {
+    res.status(400);
+    throw new Error('Password must be between 6 and 128 characters');
+  }
+  if (!['RESIDENT', 'ADMIN', 'GUARD'].includes(normalizedRole)) {
     res.status(400);
     throw new Error('Invalid role selected');
   }
@@ -49,13 +57,13 @@ export const register = asyncHandler(async (req, res) => {
       res.status(400);
       throw new Error('Enter a name for every household member');
     }
-    if (residentFamilyMembers[0].toLowerCase() !== String(name).trim().toLowerCase()) {
+    if (residentFamilyMembers[0].toLowerCase() !== cleanName.toLowerCase()) {
       res.status(400);
       throw new Error('The first household member must be the registering resident');
     }
   }
 
-  const existing = await db.User.findOne({ email: String(email).toLowerCase().trim() });
+  const existing = await db.User.findOne({ email: cleanEmail });
   if (existing) {
     res.status(409);
     throw new Error('An account with this email already exists');
@@ -108,8 +116,8 @@ export const register = asyncHandler(async (req, res) => {
   // bcrypt one-way hash, 10 salt rounds — plain passwords are never stored
   const hashed = await bcrypt.hash(String(password), 10);
   const user = await db.User.create({
-    name: name.trim(),
-    email: String(email).toLowerCase().trim(),
+    name: cleanName,
+    email: cleanEmail,
     password: hashed,
     role,
     familyMembers: residentFamilyMembers,

@@ -28,14 +28,25 @@ export const getComplaints = asyncHandler(async (req, res) => {
 /** POST /api/complaints (resident) */
 export const createComplaint = asyncHandler(async (req, res) => {
   const { category = 'GENERAL', title, description, priority = 'MEDIUM' } = req.body;
-  if (!title) {
+  const cleanTitle = String(title || '').trim();
+  if (!cleanTitle) {
     res.status(400);
     throw new Error('Issue title is required');
   }
-  const flatId = req.user.flatId || String(req.body.flatId || '').toUpperCase();
+  const flatId = req.user.flatId;
   if (!flatId) {
     res.status(400);
-    throw new Error('A flat is required to raise a helpdesk ticket');
+    throw new Error('Your account must be assigned to a flat before raising a helpdesk ticket');
+  }
+  const cleanPriority = String(priority).toUpperCase();
+  if (!['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'].includes(cleanPriority)) {
+    res.status(400);
+    throw new Error('Priority must be LOW, MEDIUM, HIGH, or CRITICAL');
+  }
+  const cleanCategory = String(category).toUpperCase();
+  if (!['PLUMBING', 'ELECTRICAL', 'LIFT', 'CLEANING', 'SECURITY', 'GENERAL'].includes(cleanCategory)) {
+    res.status(400);
+    throw new Error('Select a valid helpdesk category');
   }
 
   const ticketNo = `TKT-${Date.now().toString().slice(-6)}`;
@@ -43,10 +54,10 @@ export const createComplaint = asyncHandler(async (req, res) => {
     ticketNo,
     flatId,
     residentName: req.user.name,
-    category,
-    title: title.trim(),
-    description: description || '',
-    priority,
+    category: cleanCategory,
+    title: cleanTitle,
+    description: String(description || '').trim(),
+    priority: cleanPriority,
     status: 'PENDING',
   });
 

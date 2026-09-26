@@ -35,7 +35,8 @@ export const getVisitorLogs = asyncHandler(async (req, res) => {
  */
 export const checkInVisitor = asyncHandler(async (req, res) => {
   const { guestName, phone, flatId, vehicleNo, purpose, notes, passCode } = req.body;
-  if (!guestName || !flatId) {
+  const cleanGuestName = String(guestName || '').trim();
+  if (!cleanGuestName || !flatId) {
     res.status(400);
     throw new Error('Guest name and destination flat are required');
   }
@@ -62,11 +63,25 @@ export const checkInVisitor = asyncHandler(async (req, res) => {
   let preApproved = null;
   if (passCode) {
     preApproved = await db.GatePass.findOne({ passCode: String(passCode), status: 'ACTIVE' });
+    if (!preApproved) {
+      res.status(404);
+      throw new Error('QR pass is invalid, expired, or already used');
+    }
+    if (preApproved.flatId !== flat.flatId) {
+      res.status(403);
+      throw new Error('QR pass does not belong to the selected destination flat');
+    }
+    const passExpiresAt = new Date(preApproved.validUntil).getTime();
+    if (!Number.isFinite(passExpiresAt) || passExpiresAt < Date.now()) {
+      await db.GatePass.findByIdAndUpdate(preApproved._id, { $set: { status: 'EXPIRED' } });
+      res.status(410);
+      throw new Error('This QR pass has expired — ask the resident to issue a new one');
+    }
   }
 
   const approved = Boolean(preApproved);
   const visitor = await db.Visitor.create({
-    guestName: guestName.trim(),
+    guestName: cleanGuestName,
     phone: mobile.value,
     flatId: flat.flatId,
     vehicleNo: plate.value,
@@ -109,7 +124,7 @@ export const checkInVisitor = asyncHandler(async (req, res) => {
   });
 });
 
-/** PATCH /api/visitors/:id/decision — resident taps Approve / Deny */
+/** PATCH /api/visitors/:id/decision — resident, guard, or admin approves / denies */
 export const decideVisitor = asyncHandler(async (req, res) => {
   const { status, guardNote } = req.body;
   if (!['APPROVED', 'DENIED'].includes(status)) {
@@ -125,12 +140,20 @@ export const decideVisitor = asyncHandler(async (req, res) => {
     res.status(403);
     throw new Error('You can only action visitors for your own flat');
   }
+  if (visitor.approvalStatus !== 'PENDING') {
+    res.status(409);
+    throw new Error(`This visitor request is already ${String(visitor.approvalStatus || 'processed').toLowerCase()}`);
+  }
 
-  const updated = await db.Visitor.findByIdAndUpdate(
-    visitor._id,
-    { $set: { approvalStatus: status, approvedBy: req.user.name, guardNote: guardNote || '' } },
+  const updated = await db.Visitor.findOneAndUpdate(
+    { _id: visitor._id, approvalStatus: 'PENDING' },
+    { $set: { approvalStatus: status, approvedBy: req.user.name, guardNote: String(guardNote || '').trim() } },
     { new: true }
   );
+  if (!updated) {
+    res.status(409);
+    throw new Error('Another user has already processed this visitor request');
+  }
 
   const payload = { visitor: updated, decidedBy: req.user.name, at: new Date().toISOString() };
   emitToGuards('visitor_updated', payload);
@@ -158,11 +181,19 @@ export const checkOutVisitor = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error(`${visitor.guestName} has already been checked out`);
   }
-  const updated = await db.Visitor.findByIdAndUpdate(
-    visitor._id,
+  if (!['APPROVED', 'PRE_APPROVED'].includes(visitor.approvalStatus)) {
+    res.status(400);
+    throw new Error('Only an admitted visitor can be checked out');
+  }
+  const updated = await db.Visitor.findOneAndUpdate(
+    { _id: visitor._id, checkOutTime: null, approvalStatus: { $in: ['APPROVED', 'PRE_APPROVED'] } },
     { $set: { checkOutTime: new Date(), checkedOutBy: req.user.name } },
     { new: true }
   );
+  if (!updated) {
+    res.status(409);
+    throw new Error('Visitor status changed before checkout; refresh the gate log and try again');
+  }
   const payload = { visitor: updated, at: new Date().toISOString() };
   emitToGuards('visitor_checked_out', payload);
   emitToAdmins('visitor_checked_out', payload);
@@ -177,9 +208,15 @@ export const checkOutVisitor = asyncHandler(async (req, res) => {
  */
 export const createGatePass = asyncHandler(async (req, res) => {
   const { guestName, phone, purpose, vehicleNo, validHours = 24 } = req.body;
-  if (!guestName) {
+  const cleanGuestName = String(guestName || '').trim();
+  if (!cleanGuestName) {
     res.status(400);
     throw new Error('Guest name is required to generate a gate pass');
+  }
+  const passValidityHours = Number(validHours);
+  if (![6, 12, 24, 72].includes(passValidityHours)) {
+    res.status(400);
+    throw new Error('Choose a valid gate pass duration: 6, 12, 24, or 72 hours');
   }
   const flatId = req.user.role === 'RESIDENT' ? req.user.flatId : String(req.body.flatId || '').toUpperCase();
   if (!flatId) {
@@ -200,14 +237,14 @@ export const createGatePass = asyncHandler(async (req, res) => {
 
   const passCode = randomPassCode();
   const displayCode = displayCodeFor(flatId);
-  const validUntil = new Date(Date.now() + Number(validHours) * 3600 * 1000);
+  const validUntil = new Date(Date.now() + passValidityHours * 3600 * 1000);
 
   const pass = await db.GatePass.create({
     displayCode,
     passCode,
     flatId,
     residentName: req.user.name,
-    guestName: guestName.trim(),
+    guestName: cleanGuestName,
     phone: mobile.value,
     purpose: purpose || 'Guest',
     vehicleNo: plate.value,
@@ -267,7 +304,12 @@ export const validatePass = asyncHandler(async (req, res) => {
     res.status(409);
     throw new Error(`Pass ${pass.displayCode} has already been used at ${new Date(pass.usedAt).toLocaleString('en-IN')}`);
   }
-  if (new Date(pass.validUntil).getTime() < Date.now()) {
+  if (pass.status !== 'ACTIVE') {
+    res.status(409);
+    throw new Error(`Pass ${pass.displayCode} is not active`);
+  }
+  const validUntil = new Date(pass.validUntil).getTime();
+  if (!Number.isFinite(validUntil) || validUntil < Date.now()) {
     await db.GatePass.findByIdAndUpdate(pass._id, { $set: { status: 'EXPIRED' } });
     res.status(410);
     throw new Error('This gate pass has expired — ask the resident to issue a new one');
@@ -326,7 +368,8 @@ export const getMyPasses = asyncHandler(async (req, res) => {
 /** POST /api/visitors/sos — resident panic broadcast */
 export const raiseSOS = asyncHandler(async (req, res) => {
   const { category = 'Medical Emergency', note = '' } = req.body;
-  const flatId = req.user.flatId || req.body.flatId || 'GATE';
+  // Resident alarms are tied to the authenticated account; staff alarms are attributed to the gate.
+  const flatId = req.user.role === 'RESIDENT' ? req.user.flatId : 'GATE';
   const alarm = {
     id: `SOS-${Date.now()}`,
     category,
