@@ -15,9 +15,9 @@ const router = Router();
 router.get('/available', getAvailableFlats);
 
 router.use(protect);
-router.get('/', getFlats);
-router.get('/directory/summary', getDirectorySummary);
+router.get('/', authorize('ADMIN'), getFlats);
+router.get('/directory/summary', authorize('ADMIN'), getDirectorySummary);
 router.post('/', authorize('ADMIN'), createFlat);
-router.get('/:flatId', getFlat);
+router.get('/:flatId', authorize('ADMIN', 'RESIDENT'), getFlat);
 router.patch('/:flatId', authorize('ADMIN'), updateFlat);
 export default router;

@@ -7,11 +7,13 @@ import { emitToAdmins, emitToFlat } from '../realtime/socket.js';
 /**
  * Razorpay integration.
  * When RAZORPAY_KEY_ID / KEY_SECRET are configured the server talks to the
- * live Razorpay Orders API. Without keys HOMI runs the exact same
- * HMAC-SHA256 verification flow against a locally signed simulated order, so
- * the cryptography — not just the UI — can be demonstrated offline.
+ * live Razorpay Orders API. Development without keys uses the same HMAC-SHA256
+ * verification flow against a locally signed simulated order; production disables
+ * online payments until live gateway credentials are configured.
  */
-const isSimulated = () => !env.RAZORPAY_KEY_ID || !env.RAZORPAY_KEY_SECRET;
+const hasRazorpayKeys = () => Boolean(env.RAZORPAY_KEY_ID && env.RAZORPAY_KEY_SECRET);
+const isSimulated = () => !hasRazorpayKeys() && env.NODE_ENV !== 'production';
+const paymentsEnabled = () => hasRazorpayKeys() || env.NODE_ENV !== 'production';
 const signingSecret = () => env.RAZORPAY_KEY_SECRET || 'homi_simulated_gateway_secret';
 
 const signatureFor = (orderId, paymentId) =>
@@ -28,6 +30,7 @@ const safeCompare = (a, b) => {
 export const getPaymentConfig = (_req, res) => {
   res.json({
     success: true,
+    enabled: paymentsEnabled(),
     simulated: isSimulated(),
     keyId: env.RAZORPAY_KEY_ID || null,
     modes: [
@@ -40,6 +43,10 @@ export const getPaymentConfig = (_req, res) => {
 
 /** POST /api/payments/create-order  { billId } */
 export const createOrder = asyncHandler(async (req, res) => {
+  if (!paymentsEnabled()) {
+    res.status(503);
+    throw new Error('Online payments are not configured. Please contact the society office.');
+  }
   const { billId } = req.body;
   const bill = await db.Bill.findById(billId);
   if (!bill) {
@@ -105,12 +112,24 @@ export const createOrder = asyncHandler(async (req, res) => {
  * ledger is mutated — a client can never mark a bill PAID on its own.
  */
 export const verifyPayment = asyncHandler(async (req, res) => {
+  if (!paymentsEnabled()) {
+    res.status(503);
+    throw new Error('Online payments are not configured. Please contact the society office.');
+  }
   const { billId, razorpay_order_id, razorpay_payment_id, razorpay_signature, mode = 'UPI' } = req.body;
+  if (!['UPI', 'CARD', 'NETBANKING'].includes(mode)) {
+    res.status(400);
+    throw new Error('Unsupported online payment method');
+  }
 
   const bill = await db.Bill.findById(billId);
   if (!bill) {
     res.status(404);
     throw new Error('Maintenance bill not found');
+  }
+  if (req.user.role === 'RESIDENT' && bill.flatId !== req.user.flatId) {
+    res.status(403);
+    throw new Error('You can only pay bills for your own flat');
   }
   if (bill.status === 'PAID') {
     res.status(400);
@@ -118,13 +137,21 @@ export const verifyPayment = asyncHandler(async (req, res) => {
   }
 
   const orderId = razorpay_order_id || bill.razorpayOrderId;
-  if (!orderId) {
+  if (!orderId || !bill.razorpayOrderId) {
     res.status(400);
     throw new Error('No Razorpay order found for this bill — create an order first');
   }
+  if (String(orderId) !== String(bill.razorpayOrderId)) {
+    res.status(400);
+    throw new Error('Payment order does not match this maintenance bill');
+  }
+  if (!isSimulated() && (!razorpay_payment_id || !razorpay_signature)) {
+    res.status(400);
+    throw new Error('Razorpay payment ID and signature are required to verify a live payment');
+  }
 
   // Simulated gateway: the server mints the payment id + signature, then runs
-  // the identical verification path below.
+  // the identical verification path below. Live mode requires real gateway values.
   const paymentId = razorpay_payment_id || `pay_sim${crypto.randomBytes(8).toString('hex')}`;
   const receivedSignature = razorpay_signature || signatureFor(orderId, paymentId);
   const expectedSignature = signatureFor(orderId, paymentId);
@@ -169,6 +196,10 @@ export const verifyPayment = asyncHandler(async (req, res) => {
 /** POST /api/payments/record-offline (admin) — cash / cheque reconciliation at the office */
 export const recordOfflinePayment = asyncHandler(async (req, res) => {
   const { billId, mode = 'CASH', reference } = req.body;
+  if (!['CASH', 'CHEQUE', 'BANK_TRANSFER'].includes(mode)) {
+    res.status(400);
+    throw new Error('Unsupported offline payment method');
+  }
   const bill = await db.Bill.findById(billId);
   if (!bill) {
     res.status(404);

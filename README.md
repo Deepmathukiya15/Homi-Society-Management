@@ -129,15 +129,17 @@ npm run preview     # builds the SPA, then serves UI + API + Socket.io on :5000
 | Admin | `admin@homi.com` | `admin123` | **Flat A-201**, Block A, Floor 2 (Rajesh Trivedi) • master code `ADM-001` |
 | Guard | `guard@homi.com` | `guard123` | staff code `SEC-001` |
 
-…or just tap the **1-Click Demo Evaluation Logins** on the login screen, and use the header
-**Quick Demo Switcher (Viva)** to jump between portals.
+In development, the login screen also offers **1-Click Demo Evaluation Logins**. Demo shortcuts are
+not available in production; users must sign in with their own credentials.
 
 Only the two demo homes are occupied in the seed — **A-101** (resident account) and **A-201**
 (admin account, who is also the owner on record in that flat). Every other flat is **cleared**:
 no owner, no contact, no parking slot, no invoices — 58 of 60 flats sit empty and ready to claim.
 
 Registration requires a real 10-digit mobile and a flat with **no account yet**; the picker only
-offers unclaimed flats and the API rejects a claimed one with `409`.
+offers unclaimed flats and the API rejects a claimed one with `409`. Resident registration also records
+**1–6 household members** (including the account holder); each member name is required and shown to the
+admin in the approval queue.
 
 **New registrations need admin approval.** A resident or guard who signs up gets a
 *"Registration sent for admin approval"* confirmation instead of portal access; the request lands in
@@ -214,9 +216,9 @@ bill.status = 'PAID';            // ledger mutated ONLY after verification
 bill.paymentTxnid = razorpay_payment_id;
 ```
 
-* With `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` set → real Razorpay Orders API.
-* Without keys → an order is signed locally and verified through the **identical** HMAC code path, so
-  the cryptography is demonstrable offline. Try the **tampered signature** rejection via the API tests below.
+* With `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` set → the resident checkout opens Razorpay Checkout,
+  sends the gateway's real payment ID/signature to the server, and verifies the order before marking a bill paid.
+* Without keys → development uses the local demo gateway and the same order/HMAC verification path. No real money moves; production disables online payment until live keys are configured.
 
 ---
 
@@ -238,7 +240,9 @@ of the 10th, writes `PENDING` invoices and pushes `bill_generated` to each resid
 * **JWT Bearer** tokens (`protect` middleware) with 7-day expiry.
 * **RBAC** via `authorize('ADMIN', 'GUARD')`; residents are additionally scoped with
   `flatId: req.user.flatId` so they can only ever read their own flat's data.
-* **Master passkeys** (`ADM-001`, `SEC-001`) gate privileged self-registration.
+* **Master passkeys** (`ADM-001`, `SEC-001`) gate privileged self-registration; the demo-accounts endpoint never exposes these codes.
+* **Demo login endpoints** and sample seeding are disabled in production. Production startup refuses to run with a missing MongoDB URI, default JWT secret, or default privileged-registration codes; it will not silently fall back to volatile storage. Provision the first administrator through a controlled deployment/bootstrap procedure before opening sign-up.
+* **Realtime rooms** only allow authenticated users to join their own flat room or the role room matching their signed token.
 * **Admin approval gate** — residents and guards who self-register are created with
   `approvalStatus: PENDING`; no JWT is issued at sign-up and `/api/auth/login` returns `403`
   until an admin approves them. `protect` also refuses any token belonging to an un-approved

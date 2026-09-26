@@ -15,6 +15,7 @@ export const dbState = {
 
 export async function connectDB() {
   if (!env.MONGODB_URI) {
+    if (env.NODE_ENV === 'production') throw new Error('MONGODB_URI is required in production; refusing to use volatile storage.');
     console.warn('[DB] MONGODB_URI not set → booting in-memory Mongo-compatible store');
     return dbState;
   }
@@ -26,6 +27,9 @@ export async function connectDB() {
     dbState.host = mongoose.connection.host;
     console.log(`[DB] MongoDB connected → ${mongoose.connection.host}/${mongoose.connection.name}`);
   } catch (err) {
+    if (env.NODE_ENV === 'production') {
+      throw new Error(`MongoDB connection failed in production; refusing volatile fallback. ${err.message}`);
+    }
     console.warn(`[DB] MongoDB connection failed (${err.message})`);
     console.warn('[DB] Falling back to in-memory Mongo-compatible store');
   }

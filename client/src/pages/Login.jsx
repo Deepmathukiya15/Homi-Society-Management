@@ -3,7 +3,7 @@ import { ArrowLeft, BadgeCheck, Clock, KeyRound, Lock, Mail, MapPin, UserCog, Us
 import Logo from '../components/Logo.jsx';
 import { Button, Field, FlatPicker, Input, MobileInput, StructureChips } from '../components/ui.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
-import { flatApi } from '../lib/api.js';
+import { authApi, flatApi } from '../lib/api.js';
 import { ROLES, ROLE_META, flatIdFor } from '../lib/constants.js';
 import { isValidMobile } from '../lib/validation.js';
 
@@ -27,6 +27,15 @@ export default function Login() {
   const [error, setError] = useState('');
   const [pending, setPending] = useState(null);
   const [availableFlats, setAvailableFlats] = useState(null);
+  const [demoEnabled, setDemoEnabled] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    authApi.demoAccounts()
+      .then((data) => alive && setDemoEnabled(Boolean(data.accounts?.length)))
+      .catch(() => alive && setDemoEnabled(false));
+    return () => { alive = false; };
+  }, []);
 
   // New Registration may only choose a flat that has no account yet.
   useEffect(() => {
@@ -151,6 +160,8 @@ export default function Login() {
         </div>
 
         <div className="bg-white border border-slate-200 rounded-3xl shadow-xs p-5 sm:p-6 space-y-5">
+          {demoEnabled && (
+          <>
           <div className="space-y-2.5">
             <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 text-center">
               1-Click Demo Evaluation Logins
@@ -187,6 +198,8 @@ export default function Login() {
               or use credentials
             </span>
           </div>
+          </>
+          )}
 
           {mode === 'REGISTER' && (
           <div className="space-y-2.5">

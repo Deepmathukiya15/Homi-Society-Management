@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BadgeCheck, CreditCard, Landmark, Lock, QrCode, ShieldCheck, Smartphone } from 'lucide-react';
 import { Button, DataRow, Field, Modal, Select } from '../../components/ui.jsx';
 import { paymentApi } from '../../lib/api.js';
@@ -8,12 +8,47 @@ import { PAYMENT_MODES } from '../../lib/constants.js';
 
 const MODE_ICONS = { UPI: Smartphone, CARD: CreditCard, NETBANKING: Landmark };
 
+const loadRazorpayCheckout = () => new Promise((resolve, reject) => {
+  if (window.Razorpay) return resolve();
+  const existing = document.querySelector('script[data-razorpay-checkout]');
+  if (existing) {
+    existing.addEventListener('load', () => window.Razorpay ? resolve() : reject(new Error('Razorpay checkout could not be loaded')),
+      { once: true });
+    existing.addEventListener('error', () => reject(new Error('Could not load the secure payment checkout')),
+      { once: true });
+    return;
+  }
+  const script = document.createElement('script');
+  script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+  script.async = true;
+  script.dataset.razorpayCheckout = 'true';
+  script.onload = () => window.Razorpay ? resolve() : reject(new Error('Razorpay checkout could not be loaded'));
+  script.onerror = () => reject(new Error('Could not load the secure payment checkout'));
+  document.body.appendChild(script);
+});
+
 export default function PaymentModal({ bill, open, onClose, onPaid }) {
   const toast = useToast();
   const [mode, setMode] = useState('UPI');
   const [stage, setStage] = useState('SELECT'); // SELECT → PROCESSING → VERIFYING → DONE
   const [txn, setTxn] = useState(null);
   const [error, setError] = useState('');
+  const [paymentEnabled, setPaymentEnabled] = useState(true);
+  const [simulatedGateway, setSimulatedGateway] = useState(true);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    let active = true;
+    paymentApi.config().then((config) => {
+      if (active) {
+        setPaymentEnabled(Boolean(config.enabled));
+        setSimulatedGateway(Boolean(config.simulated));
+      }
+    }).catch(() => {
+      if (active) setPaymentEnabled(false);
+    });
+    return () => { active = false; };
+  }, [open]);
 
   const reset = () => {
     setStage('SELECT');
@@ -21,19 +56,70 @@ export default function PaymentModal({ bill, open, onClose, onPaid }) {
     setError('');
   };
 
-  const pay = async () => {
+  const verifyAndComplete = async (paymentDetails) => {
     setError('');
-    setStage('PROCESSING');
+    setStage('VERIFYING');
     try {
-      const order = await paymentApi.createOrder(bill._id);
-      // Simulated Razorpay checkout latency, then the real HMAC verification
-      await new Promise((r) => setTimeout(r, 1100));
-      setStage('VERIFYING');
-      const result = await paymentApi.verify({ billId: bill._id, razorpay_order_id: order.order.orderId, mode });
+      const result = await paymentApi.verify({ billId: bill._id, ...paymentDetails, mode });
       setTxn(result.transaction);
       setStage('DONE');
       toast.success('Payment Successful', result.message);
       onPaid?.(result.bill);
+    } catch (err) {
+      setStage('SELECT');
+      setError(err.message);
+      toast.alert('Payment Error', err.message);
+    }
+  };
+
+  const pay = async () => {
+    setError('');
+    setStage('PROCESSING');
+    try {
+      const config = await paymentApi.config();
+      setPaymentEnabled(Boolean(config.enabled));
+      setSimulatedGateway(Boolean(config.simulated));
+      if (!config.enabled) throw new Error('Online payments are not configured. Please contact the society office.');
+      const order = await paymentApi.createOrder(bill._id);
+
+      if (config.simulated) {
+        // Local/demo mode runs through the same order and HMAC verification path
+        // but does not move real money.
+        await new Promise((resolve) => setTimeout(resolve, 800));
+        await verifyAndComplete({ razorpay_order_id: order.order.orderId });
+        return;
+      }
+
+      await loadRazorpayCheckout();
+      const checkout = new window.Razorpay({
+        key: order.order.keyId,
+        amount: order.order.amount,
+        currency: order.order.currency,
+        name: 'HOMI Society',
+        description: `${bill.billingPeriod || `${bill.month} ${bill.year}`} maintenance payment`,
+        order_id: order.order.orderId,
+        method: {
+          upi: mode === 'UPI',
+          card: mode === 'CARD',
+          netbanking: mode === 'NETBANKING',
+        },
+        theme: { color: '#4f46e5' },
+        handler: (response) => {
+          verifyAndComplete({
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_signature: response.razorpay_signature,
+          });
+        },
+        modal: { ondismiss: () => setStage('SELECT') },
+      });
+      checkout.on('payment.failed', (response) => {
+        const message = response.error?.description || 'Payment failed. Please try again.';
+        setStage('SELECT');
+        setError(message);
+        toast.alert('Payment Failed', message);
+      });
+      checkout.open();
     } catch (err) {
       setStage('SELECT');
       setError(err.message);
@@ -58,22 +144,22 @@ export default function PaymentModal({ bill, open, onClose, onPaid }) {
       maxWidth="max-w-xl"
       footer={
         stage === 'DONE' ? (
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <span className="text-[11px] font-bold text-emerald-700 flex items-center gap-1.5">
-              <BadgeCheck className="w-4 h-4" /> Maintenance Bill marked as PAID in society database
+              <BadgeCheck className="w-4 h-4 shrink-0" /> Maintenance Bill marked as PAID in society database
             </span>
-            <Button onClick={close}>Done / Return to Portal</Button>
+            <Button className="w-full sm:w-auto" onClick={close}>Done / Return to Portal</Button>
           </div>
         ) : (
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <span className="text-[11px] text-slate-500 font-medium flex items-center gap-1.5">
-              <Lock className="w-3.5 h-3.5" /> 256-bit encrypted • HMAC-SHA256 verified server-side
+              <Lock className="w-3.5 h-3.5 shrink-0" /> Payment verification is handled securely by the server.
             </span>
-            <div className="flex gap-2">
+            <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={close} disabled={stage !== 'SELECT'}>
                 Cancel
               </Button>
-              <Button onClick={pay} disabled={stage !== 'SELECT'} icon={MODE_ICONS[mode]}>
+              <Button onClick={pay} disabled={stage !== 'SELECT' || !paymentEnabled} icon={MODE_ICONS[mode]}>
                 {stage === 'SELECT' ? `Pay ${inr(bill.amount)}` : 'Processing…'}
               </Button>
             </div>
@@ -94,6 +180,12 @@ export default function PaymentModal({ bill, open, onClose, onPaid }) {
             <span className="text-lg font-black text-indigo-700 font-mono">{inr(bill.amount)}</span>
           </div>
         </div>
+
+        {stage === 'SELECT' && !paymentEnabled && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+            Online payments are temporarily unavailable. Please contact the society office for assistance.
+          </div>
+        )}
 
         {stage === 'SELECT' && (
           <>
@@ -134,10 +226,13 @@ export default function PaymentModal({ bill, open, onClose, onPaid }) {
                   <QrCode className="w-10 h-10 text-white" />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-slate-900">Simulated test gateway</div>
+                  <div className="text-xs font-bold text-slate-900">
+                    {simulatedGateway ? 'Demo payment mode' : 'Secure Razorpay checkout'}
+                  </div>
                   <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
-                    GPay · PhonePe · Paytm · BHIM. Enter any virtual UPI ID (VPA) in test mode — no real money moves, but
-                    the order + HMAC verification path is executed exactly as in production.
+                    {simulatedGateway
+                      ? 'No real money moves in demo mode. The order and server verification flow will still be demonstrated.'
+                      : 'You will complete your payment in the secure Razorpay checkout window.'}
                   </p>
                 </div>
               </div>

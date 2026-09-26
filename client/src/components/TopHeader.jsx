@@ -169,7 +169,7 @@ export default function TopHeader() {
         subtitle={`Instant alert to guards & society admins • Flat ${user?.flatId || 'Gate 1'}`}
         icon={Siren}
         footer={
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <span className="text-[11px] text-slate-500 font-medium">
               Alerts will reach connected residents, guards and admins.
             </span>

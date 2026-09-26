@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { db, toSafeUser } from '../store/index.js';
+import { db, findUserForLogin, toSafeUser } from '../store/index.js';
 import { signToken } from '../utils/tokens.js';
 import { asyncHandler, parseFlatId } from '../utils/helpers.js';
 import { formatMobile, validateMobileField } from '../utils/validators.js';
@@ -149,7 +149,7 @@ export const login = asyncHandler(async (req, res) => {
     throw new Error('Email and password are required');
   }
 
-  const user = await db.User.findOne({ email: String(email).toLowerCase().trim() });
+  const user = await findUserForLogin(String(email).toLowerCase().trim());
   if (!user) {
     res.status(401);
     throw new Error('Authentication failed. Please check details.');
@@ -180,6 +180,10 @@ export const login = asyncHandler(async (req, res) => {
 
 /** POST /api/auth/demo-login  → 1-click evaluation logins for the login screen */
 export const demoLogin = asyncHandler(async (req, res) => {
+  if (!env.DEMO_LOGIN_ENABLED) {
+    res.status(404);
+    throw new Error('Demo logins are disabled in this environment');
+  }
   const role = String(req.body.role || 'RESIDENT').toUpperCase();
   const account = DEMO_ACCOUNTS[role];
   if (!account) {
@@ -206,9 +210,11 @@ export const me = asyncHandler(async (req, res) => {
 
 /** GET /api/auth/demo-accounts — shown as hints on the login screen */
 export const demoAccounts = (_req, res) => {
+  if (!env.DEMO_LOGIN_ENABLED) {
+    return res.status(404).json({ success: false, message: 'Demo accounts are disabled in this environment' });
+  }
   res.json({
     success: true,
     accounts: Object.entries(DEMO_ACCOUNTS).map(([role, acc]) => ({ role, ...acc })),
-    masterCodes: { ADMIN: env.ADMIN_MASTER_CODE, GUARD: env.GUARD_MASTER_CODE },
   });
 };

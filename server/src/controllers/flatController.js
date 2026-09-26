@@ -188,6 +188,10 @@ export const getFlat = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error(`Flat ${req.params.flatId} not found (valid range A-101 … C-504)`);
   }
+  if (req.user.role === 'RESIDENT' && flat.flatId !== req.user.flatId) {
+    res.status(403);
+    throw new Error('You can only view details for your own flat');
+  }
   const [bills, visitors] = await Promise.all([
     db.Bill.find({ flatId: flat.flatId }),
     db.Visitor.find({ flatId: flat.flatId }),

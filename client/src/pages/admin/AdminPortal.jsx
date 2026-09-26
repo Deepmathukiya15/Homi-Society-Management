@@ -4,7 +4,6 @@ import {
   Bell,
   Building2,
   CalendarClock,
-  Database,
   RefreshCw,
   ReceiptText,
   ScanLine,

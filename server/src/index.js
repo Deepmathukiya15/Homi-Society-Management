@@ -30,7 +30,12 @@ app.get('/api/health', (_req, res) => {
     app: 'HOMI — Integrated Home & Community Management Solutions',
     database: dbState.label,
     usingMemory: dbState.usingMemory,
-    razorpay: env.RAZORPAY_KEY_ID ? 'live keys configured' : 'simulated gateway (HMAC path active)',
+    razorpay:
+      env.RAZORPAY_KEY_ID && env.RAZORPAY_KEY_SECRET
+        ? 'live keys configured'
+        : isProd
+          ? 'online payments disabled (live keys missing)'
+          : 'simulated gateway (development only)',
     socketRooms: ['flat_<FLAT_ID>', 'guard_feed', 'admin_feed'],
     uptimeSeconds: Math.round(process.uptime()),
     timestamp: new Date().toISOString(),
@@ -71,7 +76,18 @@ cron.schedule(
   { timezone: 'Asia/Kolkata' }
 );
 
+const assertProductionConfig = () => {
+  if (!isProd) return;
+  const unsafe = [];
+  if (!env.MONGODB_URI) unsafe.push('MONGODB_URI');
+  if (!env.JWT_SECRET || env.JWT_SECRET === 'homi_super_secret_change_me_in_production') unsafe.push('a unique JWT_SECRET');
+  if (!env.ADMIN_MASTER_CODE || env.ADMIN_MASTER_CODE === 'ADM-001') unsafe.push('a unique ADMIN_MASTER_CODE');
+  if (!env.GUARD_MASTER_CODE || env.GUARD_MASTER_CODE === 'SEC-001') unsafe.push('a unique GUARD_MASTER_CODE');
+  if (unsafe.length) throw new Error(`Unsafe production configuration. Set ${unsafe.join(', ')} before starting.`);
+};
+
 const start = async () => {
+  assertProductionConfig();
   await connectDB();
 
   // Restore the durable snapshot so in-flight JWT sessions survive a restart

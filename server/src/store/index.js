@@ -20,6 +20,12 @@ export const db = new Proxy(
   }
 );
 
+/** Find a login account including its hidden password hash (Mongoose select:false). */
+export const findUserForLogin = (email) => {
+  const query = db.User.findOne({ email });
+  return dbState.usingMemory ? query : query.select('+password');
+};
+
 export const stripPassword = (doc) => {
   if (!doc) return doc;
   const plain = typeof doc.toObject === 'function' ? doc.toObject() : { ...doc };

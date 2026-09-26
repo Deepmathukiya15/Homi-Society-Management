@@ -1,6 +1,6 @@
 import { db } from '../store/index.js';
 import { asyncHandler } from '../utils/helpers.js';
-import { emitToAdmins, broadcast } from '../realtime/socket.js';
+import { emitToRoom } from '../realtime/socket.js';
 
 /** GET /api/notices */
 export const getNotices = asyncHandler(async (_req, res) => {
@@ -29,8 +29,7 @@ export const createNotice = asyncHandler(async (req, res) => {
     postedBy: `${req.user.name} (${req.user.role === 'ADMIN' ? 'Secretary' : 'Committee'})`,
   });
 
-  broadcast('notice_published', { notice, at: new Date().toISOString() });
-  emitToAdmins('notice_published', { notice });
+  emitToRoom('all_users', 'notice_published', { notice, at: new Date().toISOString() });
 
   res.status(201).json({
     success: true,
@@ -47,7 +46,7 @@ export const deleteNotice = asyncHandler(async (req, res) => {
     throw new Error('Notice not found');
   }
   await db.Notice.findByIdAndDelete(req.params.id);
-  broadcast('notice_deleted', { noticeId: req.params.id });
+  emitToRoom('all_users', 'notice_deleted', { noticeId: req.params.id });
   res.json({ success: true, message: 'Notice Deleted — removed from board', noticeId: req.params.id });
 });
 

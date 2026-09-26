@@ -17,15 +17,26 @@ export function initSocket(httpServer) {
     path: '/socket.io',
   });
 
-  io.use((socket, next) => {
+  io.use(async (socket, next) => {
     const token = socket.handshake.auth?.token;
-    if (!token) return next(); // allow anonymous listeners (read-only) for public telemetry
+    if (!token) return next(); // login screens may connect, but anonymous sockets receive no protected-room events
     try {
-      socket.user = verifyToken(token);
+      const decoded = verifyToken(token);
+      const account = await db.User.findById(decoded.id);
+      if (!account || (account.approvalStatus || 'APPROVED') !== 'APPROVED') {
+        return next(new Error('Unauthorized socket session'));
+      }
+      // Resolve current role/flat from the database rather than trusting stale JWT claims.
+      socket.user = {
+        id: String(account._id),
+        name: account.name,
+        role: account.role,
+        flatId: account.flatId,
+      };
+      next();
     } catch {
-      socket.user = null;
+      next(new Error('Unauthorized socket session'));
     }
-    next();
   });
 
   io.on('connection', (socket) => {
@@ -43,15 +54,20 @@ export function initSocket(httpServer) {
       connectedAt: new Date().toISOString(),
     });
 
-    socket.on('join_flat', ({ flatId }) => {
-      if (!flatId) return;
-      socket.join(`flat_${String(flatId).toUpperCase()}`);
-      socket.emit('joined_room', { room: `flat_${String(flatId).toUpperCase()}` });
+    socket.on('join_flat', ({ flatId } = {}) => {
+      if (!user || !flatId) return;
+      const requestedFlat = String(flatId).toUpperCase();
+      const canJoin = role === 'ADMIN' || role === 'GUARD' || (role === 'RESIDENT' && user.flatId === requestedFlat);
+      if (!canJoin) return;
+      socket.join(`flat_${requestedFlat}`);
+      socket.emit('joined_room', { room: `flat_${requestedFlat}` });
     });
 
-    socket.on('join_role_room', ({ role: r }) => {
-      if (r === 'GUARD') socket.join('guard_feed');
-      if (r === 'ADMIN') socket.join('admin_feed');
+    socket.on('join_role_room', ({ role: requestedRole } = {}) => {
+      // A client may only rejoin the role room encoded in its signed JWT.
+      if (!user || requestedRole !== role) return;
+      if (role === 'GUARD') socket.join('guard_feed');
+      if (role === 'ADMIN') socket.join('admin_feed');
     });
 
     // Resident approves / denies straight over the websocket (REST fallback also exists).
@@ -103,4 +119,3 @@ export const emitToRoom = (room, event, payload) => io?.to(room).emit(event, pay
 export const emitToFlat = (flatId, event, payload) => io?.to(`flat_${flatId}`).emit(event, payload);
 export const emitToGuards = (event, payload) => io?.to('guard_feed').emit(event, payload);
 export const emitToAdmins = (event, payload) => io?.to('admin_feed').emit(event, payload);
-export const broadcast = (event, payload) => io?.emit(event, payload);
