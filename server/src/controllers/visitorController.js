@@ -1,7 +1,7 @@
 import { db } from '../store/index.js';
 import { asyncHandler, displayCodeFor, randomPassCode } from '../utils/helpers.js';
 import { formatMobile, validateMobileField, validateVehicleField } from '../utils/validators.js';
-import { emitToAdmins, emitToFlat, emitToGuards } from '../realtime/socket.js';
+import { emitToAdmins, emitToFlat, emitToGuards, emitToRoom } from '../realtime/socket.js';
 
 const sortByNewest = (list) =>
   [...list].sort((a, b) => new Date(b.checkInTime || b.createdAt) - new Date(a.checkInTime || a.createdAt));
@@ -335,13 +335,14 @@ export const raiseSOS = asyncHandler(async (req, res) => {
     raisedBy: req.user.name,
     at: new Date().toISOString(),
   };
-  emitToGuards('sos_broadcast', alarm);
-  emitToAdmins('sos_broadcast', alarm);
-  emitToFlat(flatId, 'sos_acknowledged', alarm);
+  // Every authenticated socket joins all_users on connect. Broadcast once to
+  // that shared room so guards/admins are reached even if their role-room join
+  // event has not completed yet, and no device receives duplicate alerts.
+  emitToRoom('all_users', 'sos_broadcast', alarm);
   console.warn(`[SOS] ${category} raised from Flat ${flatId} by ${req.user.name}`);
   res.json({
     success: true,
-    message: `Emergency SOS broadcast — Gate Security & Society Management have been alerted (${category}).`,
+    message: `Emergency SOS sent to connected society accounts (${category}).`,
     alarm,
   });
 });

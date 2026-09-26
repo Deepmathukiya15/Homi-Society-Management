@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
   ChevronDown,
@@ -45,8 +46,9 @@ export default function TopHeader() {
   const broadcastSos = async () => {
     setSending(true);
     try {
-      const res = await visitorApi.sos({ category: sosCategory, note: sosNote });
-      toast.alert(`SOS • ${sosCategory}`, res.message);
+      const res = await visitorApi.sos({ category: sosCategory, note: sosNote.trim() });
+      if (!res?.success) throw new Error(res?.message || 'The SOS request could not be sent.');
+      toast.success('SOS Sent', res.message);
       setSosOpen(false);
       setSosNote('');
     } catch (err) {
@@ -159,6 +161,7 @@ export default function TopHeader() {
         </div>
       </div>
 
+      {createPortal(
       <Modal
         open={sosOpen}
         onClose={() => setSosOpen(false)}
@@ -205,7 +208,7 @@ export default function TopHeader() {
             only for genuine emergencies.
           </div>
         </div>
-      </Modal>
+      </Modal>, document.body)}
     </header>
   );
 }
