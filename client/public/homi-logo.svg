@@ -1,0 +1,303 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 680" width="100%" height="100%">
+  <defs>
+    <!-- Background: Deep Pure Black to match uploaded asset -->
+    <radialGradient id="bgGlow" cx="50%" cy="50%" r="70%">
+      <stop offset="0%" stop-color="#050b18" />
+      <stop offset="50%" stop-color="#02040a" />
+      <stop offset="100%" stop-color="#000000" />
+    </radialGradient>
+
+    <!-- Metallic 3D Blue Shading Gradients -->
+    <linearGradient id="mainBlue" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#70b3fe" />
+      <stop offset="18%" stop-color="#3b82f6" />
+      <stop offset="55%" stop-color="#1d4ed8" />
+      <stop offset="100%" stop-color="#172554" />
+    </linearGradient>
+
+    <linearGradient id="brightCyan" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#bae6fd" />
+      <stop offset="35%" stop-color="#38bdf8" />
+      <stop offset="75%" stop-color="#1d4ed8" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+
+    <linearGradient id="darkFace" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#1e3a8a" />
+      <stop offset="60%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#020617" />
+    </linearGradient>
+
+    <linearGradient id="roofEaveGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#93c5fd" />
+      <stop offset="25%" stop-color="#3b82f6" />
+      <stop offset="70%" stop-color="#1d4ed8" />
+      <stop offset="100%" stop-color="#172554" />
+    </linearGradient>
+
+    <linearGradient id="glowSwoosh" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#1d4ed8" stop-opacity="0" />
+      <stop offset="20%" stop-color="#3b82f6" stop-opacity="0.9" />
+      <stop offset="50%" stop-color="#93c5fd" stop-opacity="1" />
+      <stop offset="80%" stop-color="#3b82f6" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#1d4ed8" stop-opacity="0" />
+    </linearGradient>
+
+    <linearGradient id="taglineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#1d4ed8" />
+      <stop offset="50%" stop-color="#3b82f6" />
+      <stop offset="100%" stop-color="#1d4ed8" />
+    </linearGradient>
+
+    <!-- Filters for 3D metallic edge glow -->
+    <filter id="subtleGlow" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur stdDeviation="2.5" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+
+    <filter id="neonBloom" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="1.2" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Transparent canvas — the mark is used on light surfaces -->
+
+  <!-- ==================== BACKGROUND SKYSCRAPERS ==================== -->
+  <g id="skyscrapers" opacity="0.98">
+    <!-- TOWER 1: Left Building (behind H-O junction) -->
+    <g id="tower-left">
+      <!-- Dark Left Face -->
+      <polygon points="425,370 425,230 460,200 460,370" fill="url(#darkFace)" stroke="#1e40af" stroke-width="1" />
+      <!-- Illuminated Front Face -->
+      <polygon points="460,200 515,225 515,370 460,370" fill="url(#brightCyan)" stroke="#38bdf8" stroke-width="1.2" />
+      <!-- Angled Roof Top -->
+      <polygon points="425,230 460,200 515,225 480,245" fill="#60a5fa" opacity="0.9" />
+      <!-- Windows Grid on Front Face -->
+      <g fill="#e0f2fe" opacity="0.9">
+        <rect x="472" y="235" width="8" height="12" rx="1" />
+        <rect x="472" y="255" width="8" height="12" rx="1" />
+        <rect x="472" y="275" width="8" height="12" rx="1" />
+        <rect x="472" y="295" width="8" height="12" rx="1" />
+        <rect x="472" y="315" width="8" height="12" rx="1" />
+
+        <rect x="490" y="242" width="8" height="12" rx="1" />
+        <rect x="490" y="262" width="8" height="12" rx="1" />
+        <rect x="490" y="282" width="8" height="12" rx="1" />
+        <rect x="490" y="302" width="8" height="12" rx="1" />
+        <rect x="490" y="322" width="8" height="12" rx="1" />
+      </g>
+    </g>
+
+    <!-- TOWER 2: Center Tallest Skyscraper -->
+    <g id="tower-center">
+      <!-- Dark Angled Left Side -->
+      <polygon points="495,370 495,185 550,140 550,370" fill="url(#darkFace)" stroke="#1d4ed8" stroke-width="1.2" />
+      <!-- Bright Front Facade -->
+      <polygon points="550,140 615,175 615,370 550,370" fill="url(#brightCyan)" stroke="#60a5fa" stroke-width="1.5" />
+      <!-- Roof Peak Slope -->
+      <polygon points="495,185 550,140 615,175 560,205" fill="#93c5fd" opacity="0.95" />
+      <!-- Illuminated Windows Column on Center Tower -->
+      <g fill="#ffffff" opacity="0.95">
+        <rect x="568" y="185" width="10" height="15" rx="1" />
+        <rect x="568" y="208" width="10" height="15" rx="1" />
+        <rect x="568" y="231" width="10" height="15" rx="1" />
+        <rect x="568" y="254" width="10" height="15" rx="1" />
+        <rect x="568" y="277" width="10" height="15" rx="1" />
+        <rect x="568" y="300" width="10" height="15" rx="1" />
+        <rect x="568" y="323" width="10" height="15" rx="1" />
+
+        <rect x="590" y="195" width="10" height="15" rx="1" />
+        <rect x="590" y="218" width="10" height="15" rx="1" />
+        <rect x="590" y="241" width="10" height="15" rx="1" />
+        <rect x="590" y="264" width="10" height="15" rx="1" />
+        <rect x="590" y="287" width="10" height="15" rx="1" />
+        <rect x="590" y="310" width="10" height="15" rx="1" />
+        <rect x="590" y="333" width="10" height="15" rx="1" />
+      </g>
+    </g>
+
+    <!-- TOWER 3: Right Skyscraper (behind M) -->
+    <g id="tower-right">
+      <!-- Dark Left Face -->
+      <polygon points="610,370 610,230 655,195 655,370" fill="url(#darkFace)" stroke="#1e40af" stroke-width="1" />
+      <!-- Front Face -->
+      <polygon points="655,195 710,225 710,370 655,370" fill="url(#brightCyan)" stroke="#38bdf8" stroke-width="1.2" />
+      <!-- Roof Top -->
+      <polygon points="610,230 655,195 710,225 665,245" fill="#60a5fa" opacity="0.85" />
+      <!-- Windows -->
+      <g fill="#bae6fd" opacity="0.9">
+        <rect x="670" y="235" width="8" height="12" rx="1" />
+        <rect x="670" y="255" width="8" height="12" rx="1" />
+        <rect x="670" y="275" width="8" height="12" rx="1" />
+        <rect x="670" y="295" width="8" height="12" rx="1" />
+        <rect x="670" y="315" width="8" height="12" rx="1" />
+
+        <rect x="688" y="242" width="8" height="12" rx="1" />
+        <rect x="688" y="262" width="8" height="12" rx="1" />
+        <rect x="688" y="282" width="8" height="12" rx="1" />
+        <rect x="688" y="302" width="8" height="12" rx="1" />
+        <rect x="688" y="322" width="8" height="12" rx="1" />
+      </g>
+    </g>
+
+    <!-- TOWER 4: Far Right Compact Tower -->
+    <g id="tower-far-right">
+      <polygon points="705,370 705,275 745,250 745,370" fill="#0f172a" stroke="#1d4ed8" stroke-width="1" />
+      <polygon points="745,250 760,265 760,370 745,370" fill="#1e3a8a" stroke="#2563eb" stroke-width="1" />
+      <g fill="#93c5fd" opacity="0.75">
+        <rect x="718" y="282" width="6" height="8" rx="1" />
+        <rect x="718" y="296" width="6" height="8" rx="1" />
+        <rect x="718" y="310" width="6" height="8" rx="1" />
+        <rect x="718" y="324" width="6" height="8" rx="1" />
+      </g>
+    </g>
+  </g>
+
+  <!-- ==================== HOUSE GABLE ROOF & WINDOW ==================== -->
+  <g id="house-roof" filter="url(#subtleGlow)">
+    <!-- Main Triangular Eaves / Sloped Roof of H -->
+    <path d="M35,360 L260,150 L525,360 L485,390 L260,208 L72,390 Z"
+          fill="url(#roofEaveGrad)"
+          stroke="#93c5fd"
+          stroke-width="2.5" />
+
+    <!-- Top Ridge Specular Highlight -->
+    <path d="M260,152 L523,358" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" opacity="0.7" />
+    <path d="M38,358 L260,152" stroke="#bae6fd" stroke-width="2" stroke-linecap="round" opacity="0.6" />
+
+    <!-- Attic 4-Pane Square Window inside Gable -->
+    <g transform="translate(225, 230)">
+      <!-- Outer Frame -->
+      <rect x="0" y="0" width="70" height="70" rx="6" fill="#0c1838" stroke="#38bdf8" stroke-width="3.5" />
+      <!-- 4 Window Panes -->
+      <rect x="8" y="8" width="23" height="23" rx="2" fill="#38bdf8" />
+      <rect x="39" y="8" width="23" height="23" rx="2" fill="#93c5fd" />
+      <rect x="8" y="39" width="23" height="23" rx="2" fill="#1d4ed8" />
+      <rect x="39" y="39" width="23" height="23" rx="2" fill="#60a5fa" />
+    </g>
+  </g>
+
+  <!-- ==================== HOMI 3D TYPOGRAPHY ==================== -->
+  <g id="letters" filter="url(#subtleGlow)">
+    <!-- - LETTER 'H' - -->
+    <g id="letter-H">
+      <!-- Left Column of H -->
+      <path d="M105,305 L165,305 L165,580 L105,580 Z" fill="url(#mainBlue)" stroke="#38bdf8" stroke-width="1.8" />
+      <path d="M105,305 L125,305 L125,580 L105,580 Z" fill="#93c5fd" opacity="0.4" />
+
+      <!-- Right Column of H -->
+      <path d="M305,305 L365,305 L365,580 L305,580 Z" fill="url(#mainBlue)" stroke="#38bdf8" stroke-width="1.8" />
+      <path d="M305,305 L325,305 L325,580 L305,580 Z" fill="#93c5fd" opacity="0.4" />
+
+      <!-- Crossbar of H -->
+      <path d="M165,375 L305,375 L305,435 L165,435 Z" fill="url(#mainBlue)" stroke="#38bdf8" stroke-width="1.8" />
+
+      <!-- Family Silhouette Inside H Archway -->
+      <g id="family-silhouette" transform="translate(165, 435)">
+        <!-- Recessed Door Background -->
+        <rect x="0" y="0" width="140" height="145" fill="#040915" stroke="#1e3a8a" stroke-width="1.2" />
+
+        <!-- Adult Silhouette (Center) -->
+        <circle cx="70" cy="50" r="14" fill="#93c5fd" />
+        <path d="M48,90 C48,68 92,68 92,90 L92,144 L48,144 Z" fill="#93c5fd" stroke="#38bdf8" stroke-width="1" />
+
+        <!-- Adult Silhouette (Left) -->
+        <circle cx="42" cy="62" r="11" fill="#60a5fa" />
+        <path d="M24,96 C24,78 60,78 60,96 L60,144 L24,144 Z" fill="#60a5fa" stroke="#38bdf8" stroke-width="1" />
+
+        <!-- Child Silhouette (Right) -->
+        <circle cx="98" cy="68" r="10" fill="#60a5fa" />
+        <path d="M82,100 C82,84 114,84 114,100 L114,144 L82,144 Z" fill="#60a5fa" stroke="#38bdf8" stroke-width="1" />
+      </g>
+    </g>
+
+    <!-- - LETTER 'O' WITH KEYHOLE - -->
+    <g id="letter-O" transform="translate(375, 300)">
+      <!-- Outer Ring of O -->
+      <path d="M100,0 C165,0 200,45 200,140 C200,235 165,280 100,280 C35,280 0,235 0,140 C0,45 35,0 100,0 Z 
+               M100,60 C65,60 55,90 55,140 C55,190 65,220 100,220 C135,220 145,190 145,140 C145,90 135,60 100,60 Z"
+            fill="url(#mainBlue)"
+            stroke="#38bdf8"
+            stroke-width="2"
+            fill-rule="evenodd" />
+
+      <!-- Specular 3D Highlight Bevel on O -->
+      <path d="M100,0 C160,0 195,45 195,140 C195,150 192,160 188,170 C175,90 140,40 100,20 Z" fill="#93c5fd" opacity="0.35" />
+
+      <!-- Center Dark Core & Keyhole -->
+      <g transform="translate(100, 140)">
+        <!-- Inner oval plate -->
+        <ellipse cx="0" cy="0" rx="38" ry="58" fill="#060c1c" stroke="#1d4ed8" stroke-width="1.5" />
+        <!-- Keyhole Round Head -->
+        <circle cx="0" cy="-10" r="17" fill="#020409" stroke="#60a5fa" stroke-width="2.5" />
+        <!-- Keyhole Slot -->
+        <polygon points="-7,-5 7,-5 12,24 -12,24" fill="#020409" stroke="#60a5fa" stroke-width="2.5" />
+      </g>
+    </g>
+
+    <!-- - LETTER 'M' - -->
+    <g id="letter-M" transform="translate(605, 300)">
+      <!-- Metallic Faceted M -->
+      <path d="M0,0 L60,0 L115,175 L170,0 L230,0 L230,280 L175,280 L175,95 L125,235 L105,235 L55,95 L55,280 L0,280 Z"
+            fill="url(#mainBlue)"
+            stroke="#38bdf8"
+            stroke-width="2" />
+      
+      <!-- Specular Edge Highlight -->
+      <path d="M0,0 L25,0 L25,280 L0,280 Z" fill="#93c5fd" opacity="0.4" />
+      <path d="M115,175 L170,0 L185,0 L125,200 Z" fill="#93c5fd" opacity="0.3" />
+    </g>
+
+    <!-- - LETTER 'i' WITH WI-FI ARCS - -->
+    <g id="letter-I" transform="translate(860, 300)">
+      <!-- Main Stem Pillar of 'i' -->
+      <rect x="15" y="105" width="55" height="175" rx="4" fill="url(#mainBlue)" stroke="#38bdf8" stroke-width="2" />
+      <rect x="15" y="105" width="20" height="175" rx="2" fill="#93c5fd" opacity="0.4" />
+
+      <!-- Wi-Fi Concentric Radio Broadcast Arcs -->
+      <!-- Radio Source Dot -->
+      <circle cx="42" cy="76" r="8" fill="#60a5fa" stroke="#bae6fd" stroke-width="1.5" />
+      
+      <!-- Arc 1: Inner Wave -->
+      <path d="M24,54 A25,25 0 0,1 60,54" fill="none" stroke="#60a5fa" stroke-width="6.5" stroke-linecap="round" />
+      
+      <!-- Arc 2: Middle Wave -->
+      <path d="M12,35 A44,44 0 0,1 72,35" fill="none" stroke="#93c5fd" stroke-width="7.5" stroke-linecap="round" />
+
+      <!-- Arc 3: Outer Big Wave (Radiating bright cyan) -->
+      <path d="M0,16 A62,62 0 0,1 84,16" fill="none" stroke="#bfdbfe" stroke-width="8.5" stroke-linecap="round" filter="url(#neonBloom)" />
+    </g>
+  </g>
+
+  <!-- ==================== SWEEPING BLUE BASELINE ==================== -->
+  <g id="baseline-horizon">
+    <!-- Glow halo -->
+    <path d="M55,605 Q500,640 945,605" fill="none" stroke="url(#glowSwoosh)" stroke-width="7" stroke-linecap="round" filter="url(#neonBloom)" />
+    <!-- Sharp crisp blue crest line -->
+    <path d="M60,605 Q500,638 940,605" fill="none" stroke="#38bdf8" stroke-width="3" stroke-linecap="round" />
+    <!-- Pure white center highlight -->
+    <path d="M250,617 Q500,636 750,617" fill="none" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" opacity="0.85" />
+  </g>
+
+  <!-- ==================== OFFICIAL TAGLINE ==================== -->
+  <!-- INTEGRATED HOME & COMMUNITY MANAGEMENT SOLUTIONS -->
+  <g id="tagline" transform="translate(500, 650)" text-anchor="middle">
+    <!-- Left Flanking Rule Line -->
+    <line x1="-435" y1="-5" x2="-350" y2="-5" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" />
+    
+    <!-- Tagline Text -->
+    <text x="0" y="0"
+          font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+          font-size="19.5"
+          font-weight="800"
+          letter-spacing="5"
+          fill="url(#taglineGrad)"
+          filter="url(#subtleGlow)">
+      INTEGRATED HOME &amp; COMMUNITY MANAGEMENT SOLUTIONS
+    </text>
+
+    <!-- Right Flanking Rule Line -->
+    <line x1="350" y1="-5" x2="435" y2="-5" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" />
+  </g>
+</svg>

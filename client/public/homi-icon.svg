@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="100%" height="100%">
+  <defs>
+    <radialGradient id="iconBgGrad" cx="50%" cy="40%" r="65%">
+      <stop offset="0%" stop-color="#07122a" />
+      <stop offset="55%" stop-color="#020614" />
+      <stop offset="100%" stop-color="#000000" />
+    </radialGradient>
+    <linearGradient id="iconBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#60a5fa" />
+      <stop offset="40%" stop-color="#3b82f6" />
+      <stop offset="80%" stop-color="#1d4ed8" />
+      <stop offset="100%" stop-color="#172554" />
+    </linearGradient>
+    <linearGradient id="iconBright" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#93c5fd" />
+      <stop offset="100%" stop-color="#38bdf8" />
+    </linearGradient>
+    <filter id="iconGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="b" />
+      <feComposite in="SourceGraphic" in2="b" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Rounded Squircle Icon Container with Metallic Border -->
+  <rect width="256" height="256" rx="56" fill="url(#iconBgGrad)" stroke="#38bdf8" stroke-width="3" />
+
+  <!-- Background Skyline Towers -->
+  <polygon points="120,135 120,70 145,50 168,65 168,135" fill="#172554" stroke="#2563eb" stroke-width="1.2" opacity="0.9" />
+  <g fill="#93c5fd" opacity="0.75">
+    <rect x="135" y="75" width="4" height="6" />
+    <rect x="135" y="86" width="4" height="6" />
+    <rect x="135" y="97" width="4" height="6" />
+    <rect x="135" y="108" width="4" height="6" />
+    <rect x="150" y="80" width="4" height="6" />
+    <rect x="150" y="91" width="4" height="6" />
+    <rect x="150" y="102" width="4" height="6" />
+  </g>
+
+  <!-- Gable Roof over H -->
+  <path d="M22,130 L100,60 L180,130 L162,142 L100,85 L38,142 Z" fill="url(#iconBlue)" stroke="#93c5fd" stroke-width="1.8" filter="url(#iconGlow)" />
+
+  <!-- Attic 4-Pane Window -->
+  <g transform="translate(86, 92)">
+    <rect width="28" height="28" rx="4" fill="#060e22" stroke="#38bdf8" stroke-width="2" />
+    <rect x="3" y="3" width="9" height="9" rx="1.5" fill="#60a5fa" />
+    <rect x="16" y="3" width="9" height="9" rx="1.5" fill="#93c5fd" />
+    <rect x="3" y="16" width="9" height="9" rx="1.5" fill="#1d4ed8" />
+    <rect x="16" y="16" width="9" height="9" rx="1.5" fill="#60a5fa" />
+  </g>
+
+  <!-- Pillars of H -->
+  <rect x="42" y="125" width="26" height="78" rx="3" fill="url(#iconBlue)" stroke="#38bdf8" stroke-width="1.5" />
+  <rect x="132" y="125" width="26" height="78" rx="3" fill="url(#iconBlue)" stroke="#38bdf8" stroke-width="1.5" />
+  <rect x="68" y="145" width="64" height="24" fill="url(#iconBlue)" stroke="#38bdf8" stroke-width="1.5" />
+
+  <!-- Family Silhouette in Archway -->
+  <g transform="translate(70, 169)" fill="#93c5fd" opacity="0.95">
+    <rect width="60" height="34" fill="#040915" />
+    <!-- Adult Center -->
+    <circle cx="30" cy="9" r="6" />
+    <path d="M19,34 C19,20 41,20 41,34 Z" />
+    <!-- Adult Left -->
+    <circle cx="16" cy="14" r="4.5" fill="#60a5fa" />
+    <path d="M8,34 C8,23 24,23 24,34 Z" fill="#60a5fa" />
+    <!-- Child Right -->
+    <circle cx="44" cy="16" r="4" fill="#60a5fa" />
+    <path d="M36,34 C36,25 52,25 52,34 Z" fill="#60a5fa" />
+  </g>
+
+  <!-- Wi-Fi Concentric Wave Arcs -->
+  <g transform="translate(178, 55)" filter="url(#iconGlow)">
+    <circle cx="15" cy="40" r="3.5" fill="#60a5fa" />
+    <path d="M7,30 A12,12 0 0,1 23,30" fill="none" stroke="#60a5fa" stroke-width="3" stroke-linecap="round" />
+    <path d="M0,21 A21,21 0 0,1 30,21" fill="none" stroke="#93c5fd" stroke-width="3.5" stroke-linecap="round" />
+    <path d="M-7,12 A30,30 0 0,1 37,12" fill="none" stroke="#bae6fd" stroke-width="4" stroke-linecap="round" />
+  </g>
+
+  <!-- Swoosh Base -->
+  <path d="M28,218 Q128,230 228,218" fill="none" stroke="#38bdf8" stroke-width="3.5" stroke-linecap="round" filter="url(#iconGlow)" />
+  <path d="M60,220 Q128,229 196,220" fill="none" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round" opacity="0.9" />
+</svg>

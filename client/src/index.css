@@ -1,0 +1,101 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --color-homi-ink: #0f172a;
+  --color-homi-surface: #f8fafc;
+
+  --animate-fade-in: fade-in 0.28s ease-out both;
+  --animate-rise: rise 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-scan: scan 2.2s ease-in-out infinite;
+  --animate-siren: siren 1.1s ease-in-out infinite;
+  --animate-float: float 6s ease-in-out infinite;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(14px) scale(0.99);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+  @keyframes scan {
+    0% {
+      top: 4%;
+      opacity: 0.15;
+    }
+    50% {
+      top: 92%;
+      opacity: 0.9;
+    }
+    100% {
+      top: 4%;
+      opacity: 0.15;
+    }
+  }
+  @keyframes siren {
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.45);
+    }
+    50% {
+      box-shadow: 0 0 0 12px rgba(244, 63, 94, 0);
+    }
+  }
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+}
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    font-family: var(--font-sans);
+  }
+  ::-webkit-scrollbar {
+    width: 9px;
+    height: 9px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Utility composition used across the portals: SectionCard / StatCard styles
+   live in components/ui.jsx so Tailwind can tree-shake unused utilities. */
