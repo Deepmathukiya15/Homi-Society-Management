@@ -43,6 +43,7 @@ export const toSafeUser = (doc) => {
     email: user.email,
     role: user.role,
     isCommitteeMember: Boolean(user.isCommitteeMember),
+    familyMembers: Array.isArray(user.familyMembers) ? user.familyMembers : [],
     contactNumber: user.contactNumber,
     flatId: user.flatId,
     staffId: user.staffId,

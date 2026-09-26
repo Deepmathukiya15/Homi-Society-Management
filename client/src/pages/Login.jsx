@@ -18,6 +18,8 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [householdCount, setHouseholdCount] = useState(1);
+  const [familyMembers, setFamilyMembers] = useState(['']);
   const [contactNumber, setContactNumber] = useState('');
   const [flat, setFlat] = useState(DEFAULT_FLAT);
   const [securityCode, setSecurityCode] = useState('');
@@ -50,6 +52,23 @@ export default function Login() {
     setError('');
   };
 
+  const updateHouseholdCount = (value) => {
+    if (value === '') {
+      setHouseholdCount('');
+      return;
+    }
+    const count = Number(value);
+    // Reject out-of-range input immediately (including pasted values/spinner changes).
+    if (!Number.isInteger(count) || count < 1 || count > 6) return;
+    setHouseholdCount(count);
+    setFamilyMembers((current) => Array.from({ length: count }, (_, index) => current[index] || ''));
+  };
+
+  const updateFamilyMember = (index, value) => {
+    setFamilyMembers((current) => current.map((member, memberIndex) => memberIndex === index ? value : member));
+    if (index === 0) setName(value);
+  };
+
   const switchMode = (next) => {
     setMode(next);
     setError('');
@@ -60,6 +79,23 @@ export default function Login() {
     event.preventDefault();
     setError('');
 
+    if (mode === 'REGISTER' && role === 'RESIDENT') {
+      const count = Number(householdCount);
+      const names = familyMembers.slice(0, count).map((member) => member.trim());
+      if (!Number.isInteger(count) || count < 1 || count > 6 || names.length !== count) {
+        setError('Enter between 1 and 6 household members.');
+        return;
+      }
+      if (names.some((member) => !member)) {
+        setError('Enter the name of every household member.');
+        return;
+      }
+      if (names[0].toLowerCase() !== name.trim().toLowerCase()) {
+        setError('Member 1 must be the resident who is registering.');
+        return;
+      }
+    }
+
     // Client-side guard for the 10-digit mobile rule before hitting the API
     if (mode === 'REGISTER' && !isValidMobile(contactNumber)) {
       setError('Enter a valid 10-digit mobile number starting with 6, 7, 8 or 9');
@@ -68,13 +104,14 @@ export default function Login() {
 
     try {
       if (mode === 'LOGIN') {
-        await login(email, password, role);
+        await login(email, password);
       } else {
         const result = await register({
           name,
           email,
           password,
           role,
+          familyMembers: role === 'RESIDENT' ? familyMembers.slice(0, Number(householdCount)).map((member) => member.trim()) : [],
           contactNumber,
           flatId: role === 'RESIDENT' ? flat.flatId : undefined,
           securityCode: role === 'RESIDENT' ? undefined : securityCode,
@@ -231,10 +268,43 @@ export default function Login() {
                     className="!pl-10"
                     placeholder="e.g. Aarav Patel"
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setName(value);
+                      setFamilyMembers((current) => [value, ...current.slice(1)]);
+                    }}
                   />
                 </div>
               </Field>
+            )}
+
+            {mode === 'REGISTER' && role === 'RESIDENT' && (
+              <div className="space-y-3 rounded-2xl border border-indigo-100 bg-indigo-50/50 p-3.5">
+                <Field label="People living in this home" hint="Include yourself • Enter a number from 1 to 6">
+                  <Input
+                    required
+                    type="number"
+                    min="1"
+                    max="6"
+                    step="1"
+                    value={householdCount}
+                    onChange={(event) => updateHouseholdCount(event.target.value)}
+                    placeholder="1 to 6"
+                  />
+                </Field>
+                <div className="space-y-2.5">
+                  {Array.from({ length: Math.max(1, Math.min(Number(householdCount) || 1, 6)) }, (_, index) => (
+                    <Field key={index} label={`Member ${index + 1} name${index === 0 ? ' (account holder)' : ''}`}>
+                      <Input
+                        required
+                        placeholder={index === 0 ? 'Resident account holder name' : `Name of household member ${index + 1}`}
+                        value={familyMembers[index] ?? (index === 0 ? name : '')}
+                        onChange={(event) => updateFamilyMember(index, event.target.value)}
+                      />
+                    </Field>
+                  ))}
+                </div>
+              </div>
             )}
 
             <Field label="Email Address">

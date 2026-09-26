@@ -23,7 +23,7 @@ const authPayload = (user, message) => ({
 
 /** POST /api/auth/register */
 export const register = asyncHandler(async (req, res) => {
-  const { name, email, password, role = 'RESIDENT', contactNumber, flatId, securityCode, staffId } = req.body;
+  const { name, email, password, role = 'RESIDENT', contactNumber, flatId, securityCode, staffId, familyMembers } = req.body;
 
   if (!name || !email || !password) {
     res.status(400);
@@ -36,6 +36,23 @@ export const register = asyncHandler(async (req, res) => {
   if (!['RESIDENT', 'ADMIN', 'GUARD'].includes(role)) {
     res.status(400);
     throw new Error('Invalid role selected');
+  }
+
+  let residentFamilyMembers = [];
+  if (role === 'RESIDENT') {
+    if (!Array.isArray(familyMembers) || familyMembers.length < 1 || familyMembers.length > 6) {
+      res.status(400);
+      throw new Error('Enter between 1 and 6 household member names');
+    }
+    residentFamilyMembers = familyMembers.map((member) => String(member || '').trim());
+    if (residentFamilyMembers.some((member) => !member)) {
+      res.status(400);
+      throw new Error('Enter a name for every household member');
+    }
+    if (residentFamilyMembers[0].toLowerCase() !== String(name).trim().toLowerCase()) {
+      res.status(400);
+      throw new Error('The first household member must be the registering resident');
+    }
   }
 
   const existing = await db.User.findOne({ email: String(email).toLowerCase().trim() });
@@ -95,6 +112,7 @@ export const register = asyncHandler(async (req, res) => {
     email: String(email).toLowerCase().trim(),
     password: hashed,
     role,
+    familyMembers: residentFamilyMembers,
     contactNumber: mobile.value,
     flatId: role === 'RESIDENT' ? String(flatId).toUpperCase() : undefined,
     staffId: role !== 'RESIDENT' ? staffId || securityCode : undefined,

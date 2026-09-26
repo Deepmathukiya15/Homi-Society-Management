@@ -6,6 +6,8 @@ const userSchema = new mongoose.Schema(
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     password: { type: String, required: true, select: false },
     role: { type: String, enum: ['RESIDENT', 'ADMIN', 'GUARD'], default: 'RESIDENT' },
+    isCommitteeMember: { type: Boolean, default: false },
+    familyMembers: { type: [String], default: [] },
     contactNumber: { type: String, trim: true },
     flatId: { type: String, trim: true, uppercase: true }, // residents only, e.g. "A-101"
     staffId: { type: String, trim: true }, // guards only, e.g. "SEC-001"
@@ -28,6 +30,7 @@ userSchema.methods.toSafeJSON = function toSafeJSON() {
     email: this.email,
     role: this.role,
     isCommitteeMember: Boolean(this.isCommitteeMember),
+    familyMembers: Array.isArray(this.familyMembers) ? this.familyMembers : [],
     contactNumber: this.contactNumber,
     flatId: this.flatId,
     staffId: this.staffId,
