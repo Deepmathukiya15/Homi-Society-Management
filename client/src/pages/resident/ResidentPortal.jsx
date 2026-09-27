@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Bell, CreditCard, QrCode, ScanLine, ShieldCheck, Wrench } from 'lucide-react';
-import { Button, Pill } from '../../components/ui.jsx';
+import { Bell, Bike, Car, CreditCard, QrCode, ScanLine, ShieldCheck, Wrench } from 'lucide-react';
+import { Button, Pill, SectionCard } from '../../components/ui.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useSocket } from '../../context/SocketContext.jsx';
-import { complaintApi, maintenanceApi, noticeApi, visitorApi } from '../../lib/api.js';
+import { complaintApi, flatApi, maintenanceApi, noticeApi, visitorApi } from '../../lib/api.js';
 import { RESIDENT_TABS, UNITS_PER_FLOOR, FLOORS } from '../../lib/constants.js';
 import { formatMobile } from '../../lib/format.js';
 import ResidentBills from './ResidentBills.jsx';
@@ -24,6 +24,7 @@ export default function ResidentPortal() {
   const [notices, setNotices] = useState([]);
   const [complaints, setComplaints] = useState([]);
   const [visitors, setVisitors] = useState([]);
+  const [flatInfo, setFlatInfo] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
   const setTab = (id) => {
@@ -55,7 +56,18 @@ export default function ResidentPortal() {
   }, [refreshKey]);
 
   useEffect(() => {
+    let active = true;
+    if (user?.flatId) {
+      flatApi.get(user.flatId)
+        .then((result) => { if (active) setFlatInfo(result.flat || null); })
+        .catch(() => { if (active) setFlatInfo(null); });
+    }
+    return () => { active = false; };
+  }, [user?.flatId, refreshKey]);
+
+  useEffect(() => {
     const offs = [
+      on('flat_updated', () => setRefreshKey((k) => k + 1)), 
       on('visitor_updated', () => setRefreshKey((k) => k + 1)),
       on('new_visitor_request', () => setRefreshKey((k) => k + 1)),
       on('visitor_checked_out', () => setRefreshKey((k) => k + 1)),
@@ -107,6 +119,29 @@ export default function ResidentPortal() {
             Create QR Gate Pass
           </Button>
         </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <SectionCard className="p-4 flex items-center gap-3">
+          <div className="h-10 w-10 shrink-0 rounded-xl border border-violet-100 bg-violet-50 text-violet-700 flex items-center justify-center">
+            <Bike className="h-5 w-5" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Your bike parking</p>
+            <p className="mt-0.5 font-mono text-lg font-black text-slate-900">{flatInfo?.allocatedBikeParking || 'Not assigned'}</p>
+            <p className="text-[10px] text-slate-500">PB slot · Flat {user?.flatId}</p>
+          </div>
+        </SectionCard>
+        <SectionCard className="p-4 flex items-center gap-3">
+          <div className="h-10 w-10 shrink-0 rounded-xl border border-amber-100 bg-amber-50 text-amber-700 flex items-center justify-center">
+            <Car className="h-5 w-5" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Your car parking</p>
+            <p className="mt-0.5 font-mono text-lg font-black text-slate-900">{flatInfo?.allocatedCarParking || 'Not assigned'}</p>
+            <p className="text-[10px] text-slate-500">PC slot · Flat {user?.flatId}</p>
+          </div>
+        </SectionCard>
       </div>
 
       {pendingVisitors.length > 0 && (

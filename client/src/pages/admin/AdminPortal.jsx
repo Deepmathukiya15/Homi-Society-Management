@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import {
   Bell,
   Building2,
+  Car,
   CalendarClock,
   RefreshCw,
   ReceiptText,
@@ -24,6 +25,7 @@ import { authApi, maintenanceApi } from '../../lib/api.js';
 import { ADMIN_TABS, ADMIN_TITLES } from '../../lib/constants.js';
 import AdminOverview from './AdminOverview.jsx';
 import AdminFlats from './AdminFlats.jsx';
+import AdminParking from './AdminParking.jsx';
 import AdminMaintenance from './AdminMaintenance.jsx';
 import AdminApprovals from './AdminApprovals.jsx';
 import AdminGateFeed from './AdminGateFeed.jsx';
@@ -36,6 +38,7 @@ const ICONS = {
   OVERVIEW: Gauge,
   APPROVALS: UserCheck,
   FLATS: Building2,
+  PARKING: Car,
   MAINTENANCE: ReceiptText,
   GATE_LOGS: ScanLine,
   NOTICES: Bell,
@@ -114,7 +117,8 @@ export default function AdminPortal() {
   // Live telemetry nudges the admin dashboard without a manual refresh
   useEffect(() => {
     const offs = [
-      on('visitor_updated', () => setRefreshKey((k) => k + 1)),
+      on('flat_updated', () => setRefreshKey((k) => k + 1)),
+      on('visitor_updated', () => setRefreshKey((k) => k + 1)), 
       on('new_visitor_request', () => setRefreshKey((k) => k + 1)),
       on('visitor_checked_out', () => setRefreshKey((k) => k + 1)),
       on('bill_paid', () => setRefreshKey((k) => k + 1)),
@@ -235,6 +239,7 @@ export default function AdminPortal() {
 
         {tab === 'OVERVIEW' && <AdminOverview key={refreshKey} onOpenTab={setTab} />}
         {tab === 'FLATS' && <AdminFlats key={refreshKey} />}
+        {tab === 'PARKING' && <AdminParking key={refreshKey} />}
         {tab === 'APPROVALS' && <AdminApprovals key={refreshKey} onChanged={() => setRefreshKey((k) => k + 1)} />}
         {tab === 'MAINTENANCE' && <AdminMaintenance key={`${refreshKey}-${maintenanceSignal}`} onRunCron={runCron} cronRunning={cronRunning} />}
         {tab === 'GATE_LOGS' && <AdminGateFeed key={refreshKey} />}

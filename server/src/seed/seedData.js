@@ -45,7 +45,6 @@ const OCCUPIED_FLATS = {
 };
 
 const AREA_BY_FLOOR = { 1: 1180, 2: 1240, 3: 1300, 4: 1360, 5: 1450 };
-const PARKING_PREFIX = { A: 'P-A', B: 'P-B', C: 'P-C' };
 
 /** Builds the full 60-flat directory deterministically. */
 function buildFlats() {
@@ -72,7 +71,9 @@ function buildFlats() {
           ownerName: isOccupied ? person.ownerName : 'Unassigned',
           residentType: isOccupied ? person.residentType : 'Vacant',
           ownerContact: isOccupied ? person.ownerContact : '', // 10-digit local
-          allocatedParking: isOccupied ? `${PARKING_PREFIX[block]}${parkingIndex}` : '',
+          allocatedParking: isOccupied ? `PC${parkingIndex}` : '',
+          allocatedBikeParking: '',
+          allocatedCarParking: isOccupied ? `PC${parkingIndex}` : '',
           // ₹2.10 / sq.ft rounded to the nearest 10 → area-based maintenance
           maintenanceRate: Math.round((area * 2.1) / 10) * 10,
           email: isOccupied ? person.email : undefined,

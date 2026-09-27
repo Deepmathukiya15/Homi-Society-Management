@@ -13,7 +13,10 @@ const flatSchema = new mongoose.Schema(
     ownerName: { type: String, trim: true, default: 'Unassigned' },
     ownerContact: { type: String, trim: true, default: '—' },
     residentType: { type: String, enum: ['Owner', 'Tenant', 'Vacant'], default: 'Vacant' },
+    // Legacy combined slot remains for billing and older clients; new assignments are split by vehicle type.
     allocatedParking: { type: String, trim: true, default: '' },
+    allocatedBikeParking: { type: String, trim: true, default: '' },
+    allocatedCarParking: { type: String, trim: true, default: '' },
     maintenanceRate: { type: Number, default: 2500 }, // base monthly maintenance (₹)
   },
   { timestamps: true }

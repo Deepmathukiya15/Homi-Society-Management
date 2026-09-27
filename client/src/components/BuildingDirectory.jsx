@@ -120,6 +120,7 @@ export default function BuildingDirectory({ summary, selectedBlock, onSelectBloc
                             const occupied = typeof info.isOccupied === 'boolean' ? info.isOccupied : undefined;
                             const focused = selectedFlatId === id;
                             const tone = focused ? TONES.focused : occupied ? TONES.occupied : TONES.vacant;
+                            const parkingSlots = [info.allocatedBikeParking, info.allocatedCarParking].filter(Boolean);
                             return (
                               <button
                                 key={id}
@@ -134,6 +135,11 @@ export default function BuildingDirectory({ summary, selectedBlock, onSelectBloc
                                     {occupied === undefined ? '—' : occupied ? (info.residentType || 'Occupied') : 'Vacant'}
                                   </span>
                                 </div>
+                                {parkingSlots.length > 0 && (
+                                  <div className={`mt-1 truncate font-mono text-[6px] font-black leading-none ${focused ? 'text-indigo-100' : 'text-violet-700'}`} title={parkingSlots.join(' · ')}>
+                                    {parkingSlots.join(' · ')}
+                                  </div>
+                                )}
                               </button>
                             );
                           })}

@@ -5,13 +5,10 @@ import {
   CheckCircle2,
   Layers,
   PencilLine,
-  Search,
   Users,
 } from 'lucide-react';
 import {
   Button,
-  DataRow,
-  EmptyState,
   Field,
   FlatPicker,
   Input,
@@ -31,17 +28,14 @@ import { isValidMobile } from '../../lib/validation.js';
 
 export default function AdminFlats() {
   const toast = useToast();
-  const [flats, setFlats] = useState([]);
+  const [allFlats, setAllFlats] = useState([]);
   const [summary, setSummary] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [block, setBlock] = useState('ALL');
-  const [floor, setFloor] = useState('ALL');
-  const [occupancy, setOccupancy] = useState('ALL');
-  const [search, setSearch] = useState('');
   const [selectedFlatId, setSelectedFlatId] = useState(null);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({});
   const [saving, setSaving] = useState(false);
+  const [parkingAction, setParkingAction] = useState(null);
   const [maintenanceRateDraft, setMaintenanceRateDraft] = useState('');
   const [societyMaintenanceRate, setSocietyMaintenanceRate] = useState(null);
   const [applyingMaintenanceRate, setApplyingMaintenanceRate] = useState(false);
@@ -50,21 +44,18 @@ export default function AdminFlats() {
   const [newOwner, setNewOwner] = useState({ ownerName: '', ownerContact: '' });
 
   const load = async () => {
-    setLoading(true);
     try {
-      const [list, sum, rate] = await Promise.all([
-        flatApi.list({ block, floor, occupancy, search }),
+      const [sum, rate, directory] = await Promise.all([
         flatApi.summary(),
         flatApi.maintenanceRate(),
+        flatApi.list(),
       ]);
-      setFlats(list.flats);
+      setAllFlats(directory.flats);
       setSummary(sum.summary);
       setSocietyMaintenanceRate(rate.maintenanceRate ?? null);
       setMaintenanceRateDraft(rate.maintenanceRate == null ? '' : String(rate.maintenanceRate));
     } catch (err) {
       toast.alert('Directory Error', err.message);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -72,11 +63,11 @@ export default function AdminFlats() {
     const timer = setTimeout(load, 180);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [block, floor, occupancy, search]);
+  }, []);
 
   const selectedFlat = useMemo(
-    () => flats.find((f) => f.flatId === selectedFlatId) || null,
-    [flats, selectedFlatId]
+    () => allFlats.find((f) => f.flatId === selectedFlatId) || null,
+    [allFlats, selectedFlatId]
   );
 
   const openEditor = (flat) => {
@@ -86,7 +77,8 @@ export default function AdminFlats() {
       ownerName: flat.ownerName,
       ownerContact: flat.ownerContact || '',
       residentType: flat.residentType,
-      allocatedParking: flat.allocatedParking || '',
+      allocatedBikeParking: flat.allocatedBikeParking || '',
+      allocatedCarParking: flat.allocatedCarParking || '',
     });
   };
 
@@ -97,17 +89,36 @@ export default function AdminFlats() {
     }
     setSaving(true);
     try {
+      const isOccupied = form.isOccupied === true || form.isOccupied === 'true';
       const res = await flatApi.update(editing.flatId, {
         ...form,
-        isOccupied: form.isOccupied === true || form.isOccupied === 'true',
+        isOccupied,
+        allocatedBikeParking: isOccupied ? form.allocatedBikeParking : '',
+        allocatedCarParking: isOccupied ? form.allocatedCarParking : '',
       });
       toast.success('Flat Updated', res.message);
+      await load();
       setEditing(null);
-      load();
     } catch (err) {
       toast.alert('Update Failed', err.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const removeParking = async (flat, vehicle) => {
+    const field = vehicle === 'bike' ? 'allocatedBikeParking' : 'allocatedCarParking';
+    if (!flat?.[field]) return;
+    const actionKey = `${flat.flatId}:${vehicle}`;
+    setParkingAction(actionKey);
+    try {
+      await flatApi.update(flat.flatId, { [field]: '' });
+      toast.success('Parking Removed', `${flat[field]} removed from ${flat.flatId}.`);
+      await load();
+    } catch (error) {
+      toast.alert('Could Not Remove Parking', error.message);
+    } finally {
+      setParkingAction(null);
     }
   };
 
@@ -152,10 +163,20 @@ export default function AdminFlats() {
     }
   };
 
-  const perFloor = FLOORS.length * 4;
   const avgMaintenance = Math.round(
-    (flats.reduce((s, f) => s + Number(f.maintenanceRate || 0), 0) / Math.max(flats.length, 1)) || 0
+    (allFlats.reduce((s, f) => s + Number(f.maintenanceRate || 0), 0) / Math.max(allFlats.length, 1)) || 0
   );
+  const parkingOptions = (vehicle, flatId, currentSlot = '') => {
+    const field = vehicle === 'bike' ? 'allocatedBikeParking' : 'allocatedCarParking';
+    const flat = allFlats.find((item) => item.flatId === flatId);
+    const existing = flat?.[field] || '';
+    if (existing) return [existing];
+    const usedByOthers = new Set(allFlats.filter((item) => item.flatId !== flatId).map((item) => item[field]).filter(Boolean));
+    const prefix = vehicle === 'bike' ? 'PB' : 'PC';
+    const capacity = allFlats.length || 60;
+    return Array.from({ length: capacity }, (_, index) => `${prefix}${index + 1}`)
+      .filter((slot) => !usedByOthers.has(slot) || slot === currentSlot);
+  };
 
   return (
     <div className="space-y-5">
@@ -175,9 +196,9 @@ export default function AdminFlats() {
           tone="emerald"
         />
         <StatCard
-          label="Parking Allocated"
+          label="Parking Flats"
           value={summary?.allocatedParking ?? '—'}
-          sub={`Basement bays • ${perFloor} flats per block-floor`}
+          sub={`Bike slots: ${summary?.allocatedBikeParking ?? 0} • Car slots: ${summary?.allocatedCarParking ?? 0}`}
           icon={Car}
           tone="violet"
         />
@@ -204,7 +225,7 @@ export default function AdminFlats() {
             </Button>
           </div>
         </div>
-        <p className="mt-3 text-[11px] text-slate-500">Parking allocation remains separate: assign each flat’s parking slot from that flat’s Manage Flat panel.</p>
+        <p className="mt-3 text-[11px] text-slate-500">Use the Parking Directory tab below Flats Directory in the sidebar to assign PB bike and PC car slots.</p>
       </SectionCard>
 
       {/* ── Live building directory: Block A/B/C → 5 floors → 4 flats ── */}
@@ -217,7 +238,7 @@ export default function AdminFlats() {
             <div>
               <h3 className="text-sm font-bold text-slate-900">Building Directory — Blocks A / B / C</h3>
               <p className="text-xs text-slate-500 font-medium">
-                Floor 1 → 101-104 … Floor 5 → 501-504 • tap any flat to manage it
+                Floor 1 → 101-104 … Floor 5 → 501-504 • tap a flat to see resident and PB / PC details below
               </p>
             </div>
           </div>
@@ -230,127 +251,59 @@ export default function AdminFlats() {
           selectedBlock={block}
           selectedFlatId={selectedFlatId}
           onSelectBlock={(b) => setBlock(b)}
-          onSelectFlat={(id) => {
-            setSelectedFlatId(id);
-            const found = flats.find((f) => f.flatId === id);
-            if (found) openEditor(found);
-            else toast.info('Flat not in current filter', `Clear the filters to manage ${id}.`);
-          }}
+          onSelectFlat={(id) => setSelectedFlatId(id)}
         />
-      </SectionCard>
-
-      {/* ── Filters + flat cards ── */}
-      <SectionCard className="p-4 flex flex-col xl:flex-row gap-3 xl:items-center xl:justify-between">
-        <div className="flex flex-wrap gap-2 items-center">
-          <span className="text-xs font-semibold text-slate-500">Block:</span>
-          {['ALL', ...BLOCKS].map((b) => (
-            <button
-              key={b}
-              onClick={() => setBlock(b)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                block === b ? 'bg-indigo-600 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              {b === 'ALL' ? 'All Blocks' : `Block ${b}`}
-            </button>
-          ))}
-          <span className="text-xs font-semibold text-slate-500 ml-2">Floor:</span>
-          <Select value={floor} onChange={(e) => setFloor(e.target.value)} className="!w-32 !py-1.5 !text-xs">
-            <option value="ALL">All floors</option>
-            {FLOORS.map((f) => (
-              <option key={f} value={f}>
-                Floor {f}
-              </option>
-            ))}
-          </Select>
-          <span className="text-xs font-semibold text-slate-500 ml-2">Status:</span>
-          {['ALL', 'OCCUPIED', 'VACANT'].map((item) => (
-            <button
-              key={item}
-              onClick={() => setOccupancy(item)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                occupancy === item ? 'bg-slate-900 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              {item}
-            </button>
-          ))}
-        </div>
-        <div className="relative w-full xl:w-72">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
-          <Input
-            className="!pl-10"
-            placeholder="Search flat or owner…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-      </SectionCard>
-
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold text-slate-900">
-          {block === 'ALL' ? 'All Flats' : `Block ${block}`}
-          {floor !== 'ALL' && ` • Floor ${floor}`} <span className="text-slate-400 font-medium">({flats.length})</span>
-        </h3>
-        {selectedFlatId && (
-          <button onClick={() => setSelectedFlatId(null)} className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800">
-            Clear selection
-          </button>
-        )}
-      </div>
-
-      {loading && !flats.length ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="h-56 rounded-2xl bg-white border border-slate-200 animate-pulse" />
-          ))}
-        </div>
-      ) : flats.length === 0 ? (
-        <SectionCard>
-          <EmptyState icon={Building2} title="No flats match these filters" message="Try another block, floor or clear the search box." />
-        </SectionCard>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {flats.map((flat) => (
-            <div
-              key={flat._id}
-              className={`bg-white border rounded-2xl p-4 shadow-xs space-y-3.5 animate-fade-in transition-all ${
-                selectedFlatId === flat.flatId ? 'border-indigo-300 ring-2 ring-indigo-100' : 'border-slate-200'
-              }`}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="text-lg font-black text-slate-900 font-mono tracking-tight">{flat.flatId}</div>
-                  <div className="text-[11px] text-slate-500 font-medium">
-                    Block {flat.block || flat.wing} • Floor {flat.floor} • Unit {flat.unit} • {flat.area} sq.ft
-                  </div>
-                </div>
-                <Pill
-                  className={
-                    flat.isOccupied
-                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                      : 'bg-slate-100 text-slate-600 border border-slate-200'
-                  }
-                >
-                  {flat.isOccupied ? 'Occupied' : 'Vacant'}
+        {selectedFlat && (
+          <div className="mt-5 rounded-2xl border border-indigo-200 bg-indigo-50/50 p-4 sm:p-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-600">Selected flat details</p>
+                <h4 className="mt-1 font-mono text-lg font-black text-slate-900">{selectedFlat.flatId}</h4>
+                <p className="text-xs text-slate-500">Block {selectedFlat.block} · Floor {selectedFlat.floor} · Unit {selectedFlat.unit}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Pill className={selectedFlat.isOccupied ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-600 border border-slate-200'}>
+                  {selectedFlat.isOccupied ? 'Occupied' : 'Vacant'}
                 </Pill>
+                <Button variant="outline" size="sm" icon={PencilLine} onClick={() => openEditor(selectedFlat)}>Manage Flat</Button>
+                <button className="px-2 text-[11px] font-bold text-indigo-600 hover:text-indigo-800" onClick={() => setSelectedFlatId(null)}>Clear</button>
               </div>
-
-              <div className="space-y-1.5 pt-2 border-t border-slate-100 text-xs">
-                <DataRow label="Resident/Owner:" value={flat.ownerName} />
-                <DataRow label="Contact:" value={flat.ownerContactDisplay || flat.ownerContact || '—'} mono />
-                <DataRow label="Resident Type:" value={flat.residentType} />
-                <DataRow label="Parking:" value={flat.allocatedParking || 'None'} mono />
-                <DataRow label="Base Maintenance:" value={`${inr(flat.maintenanceRate)} / month`} />
-              </div>
-
-              <Button variant="outline" size="sm" icon={PencilLine} className="w-full" onClick={() => { setSelectedFlatId(flat.flatId); openEditor(flat); }}>
-                Manage Flat
-              </Button>
             </div>
-          ))}
-        </div>
-      )}
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="rounded-xl border border-white bg-white p-3">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Resident living here</p>
+                <p className="mt-1 text-sm font-bold text-slate-900">{selectedFlat.isOccupied ? selectedFlat.ownerName : 'No resident assigned'}</p>
+                <p className="mt-1 text-[11px] text-slate-500">{selectedFlat.isOccupied ? `${selectedFlat.residentType || 'Resident'} · ${selectedFlat.ownerContactDisplay || selectedFlat.ownerContact || 'Contact not listed'}` : 'This flat is currently vacant.'}</p>
+              </div>
+              <div className="rounded-xl border border-white bg-white p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Bike parking · PB</p>
+                  <Button variant="outline" size="sm" className="!px-2 !py-1 text-[10px]" disabled={Boolean(parkingAction)}
+                    onClick={() => selectedFlat.allocatedBikeParking ? removeParking(selectedFlat, 'bike') : openEditor(selectedFlat)}>
+                    {parkingAction === `${selectedFlat.flatId}:bike` ? 'Removing…' : selectedFlat.allocatedBikeParking ? 'Remove' : 'Assign'}
+                  </Button>
+                </div>
+                <p className="mt-2 font-mono text-sm font-black text-slate-900">{selectedFlat.allocatedBikeParking || 'Not assigned'}</p>
+              </div>
+              <div className="rounded-xl border border-white bg-white p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Car parking · PC</p>
+                  <Button variant="outline" size="sm" className="!px-2 !py-1 text-[10px]" disabled={Boolean(parkingAction)}
+                    onClick={() => selectedFlat.allocatedCarParking ? removeParking(selectedFlat, 'car') : openEditor(selectedFlat)}>
+                    {parkingAction === `${selectedFlat.flatId}:car` ? 'Removing…' : selectedFlat.allocatedCarParking ? 'Remove' : 'Assign'}
+                  </Button>
+                </div>
+                <p className="mt-2 font-mono text-sm font-black text-slate-900">{selectedFlat.allocatedCarParking || 'Not assigned'}</p>
+              </div>
+              <div className="rounded-xl border border-white bg-white p-3">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Monthly maintenance</p>
+                <p className="mt-1 text-sm font-black text-slate-900">{inr(selectedFlat.maintenanceRate)}</p>
+                <p className="mt-1 text-[11px] text-slate-500">Per month</p>
+              </div>
+            </div>
+          </div>
+        )}
+      </SectionCard>
 
       {/* ── Manage flat ── */}
       <Modal
@@ -359,7 +312,7 @@ export default function AdminFlats() {
         title={`Manage Flat ${editing?.flatId || ''}`}
         subtitle={
           editing
-            ? `Block ${editing.block || editing.wing} • Floor ${editing.floor} • Unit ${editing.unit} — occupancy, resident details and parking`
+            ? `Block ${editing.block || editing.wing} • Floor ${editing.floor} • Unit ${editing.unit} — occupancy and resident details`
             : ''
         }
         icon={Building2}
@@ -399,13 +352,35 @@ export default function AdminFlats() {
                 </Select>
               </Field>
             </div>
-            <Field label="Allocated Parking (set per flat by Admin)">
-              <Input
-                value={form.allocatedParking}
-                placeholder="P-A1"
-                onChange={(e) => setForm({ ...form, allocatedParking: e.target.value.toUpperCase() })}
-              />
-            </Field>
+            <div className="rounded-xl border border-violet-100 bg-violet-50/60 p-3 space-y-3">
+              <div>
+                <h4 className="text-xs font-bold text-violet-900">Parking Assignment</h4>
+                <p className="mt-0.5 text-[10px] text-violet-700">Changes sync automatically with the Parking Directory. Use “Not assigned” to remove a slot.</p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Field label="Bike parking · PB">
+                  <Select
+                    value={form.allocatedBikeParking || ''}
+                    disabled={form.isOccupied !== true && form.isOccupied !== 'true'}
+                    onChange={(event) => setForm({ ...form, allocatedBikeParking: event.target.value })}
+                  >
+                    <option value="">Not assigned</option>
+                    {parkingOptions('bike', editing.flatId, form.allocatedBikeParking).map((slot) => <option key={slot} value={slot}>{slot}</option>)}
+                  </Select>
+                </Field>
+                <Field label="Car parking · PC">
+                  <Select
+                    value={form.allocatedCarParking || ''}
+                    disabled={form.isOccupied !== true && form.isOccupied !== 'true'}
+                    onChange={(event) => setForm({ ...form, allocatedCarParking: event.target.value })}
+                  >
+                    <option value="">Not assigned</option>
+                    {parkingOptions('car', editing.flatId, form.allocatedCarParking).map((slot) => <option key={slot} value={slot}>{slot}</option>)}
+                  </Select>
+                </Field>
+              </div>
+              {(form.isOccupied !== true && form.isOccupied !== 'true') && <p className="text-[10px] text-amber-700">Parking slots are released when this flat is marked vacant.</p>}
+            </div>
             <div className="rounded-xl border border-indigo-100 bg-indigo-50/60 p-3 text-[11px] text-indigo-800">
               Monthly maintenance is controlled by the common society-wide rate setting and is the same for every flat.
             </div>

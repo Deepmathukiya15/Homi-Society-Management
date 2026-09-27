@@ -2,6 +2,7 @@ import { db } from '../store/index.js';
 import { asyncHandler, BLOCKS, FLOORS, UNITS_PER_FLOOR, flatIdFor, flatNumberFor, parseFlatId } from '../utils/helpers.js';
 import { formatMobile, validateMobileField } from '../utils/validators.js';
 import { FLATS as DIRECTORY_FLATS } from '../seed/seedData.js';
+import { emitToAdmins, emitToFlat } from '../realtime/socket.js';
 
 /** Residents see the society directory but never other owners' phone numbers. */
 const projectFlat = (flat, viewer) => {
@@ -16,7 +17,10 @@ const projectFlat = (flat, viewer) => {
     area: flat.area,
     isOccupied: flat.isOccupied,
     residentType: flat.residentType,
-    allocatedParking: flat.allocatedParking,
+    // Preserve the legacy combined value while exposing bike/car slots separately.
+    allocatedParking: flat.allocatedParking || flat.allocatedCarParking || flat.allocatedBikeParking || '',
+    allocatedBikeParking: flat.allocatedBikeParking || '',
+    allocatedCarParking: flat.allocatedCarParking || (!flat.allocatedBikeParking ? flat.allocatedParking : ''),
     maintenanceRate: flat.maintenanceRate,
   };
   if (viewer?.role === 'ADMIN') {
@@ -67,6 +71,18 @@ async function ensureSocietyDirectoryInternal() {
     }
   }
 
+  // Convert older single-slot parking values to the new society-wide PC1…PCN car-slot system.
+  const currentFlats = [...byId.values()];
+  const assignedCarSlots = new Set(currentFlats.map((flat) => String(flat.allocatedCarParking || '').toUpperCase()).filter(Boolean));
+  for (const flat of currentFlats) {
+    if (!flat.allocatedParking || flat.allocatedBikeParking || flat.allocatedCarParking) continue;
+    let number = 1;
+    while (assignedCarSlots.has(`PC${number}`)) number += 1;
+    const slot = `PC${number}`;
+    await db.Flat.findByIdAndUpdate(flat._id, { $set: { allocatedCarParking: slot, allocatedParking: slot } }, { new: true });
+    assignedCarSlots.add(slot);
+  }
+
   // Repair older approved registrations whose flat card was never synchronized on approval.
   const residents = (await db.User.find({})).filter(
     (user) => ['RESIDENT', 'ADMIN'].includes(user.role) && (user.approvalStatus || 'APPROVED') === 'APPROVED' && user.flatId
@@ -81,7 +97,10 @@ async function ensureSocietyDirectoryInternal() {
     if (accounts.length !== 1) continue;
     const user = accounts[0];
     const flat = byId.get(id);
-    if (!flat || (flat.isOccupied && flat.ownerName && flat.ownerName !== 'Unassigned' && flat.ownerName !== user.name)) continue;
+    if (!flat) continue;
+    // Do not resurrect a flat Admin intentionally marked vacant while retaining its former owner's name.
+    if (!flat.isOccupied && flat.ownerName && flat.ownerName !== 'Unassigned') continue;
+    if (flat.isOccupied && flat.ownerName && flat.ownerName !== 'Unassigned' && flat.ownerName !== user.name) continue;
     await db.Flat.findByIdAndUpdate(flat._id, { $set: {
       isOccupied: true,
       ownerName: user.name,
@@ -123,6 +142,8 @@ export const getFlats = asyncHandler(async (req, res) => {
         f.flatId.toLowerCase().includes(q) ||
         String(f.ownerName || '').toLowerCase().includes(q) ||
         String(f.allocatedParking || '').toLowerCase().includes(q) ||
+        String(f.allocatedBikeParking || '').toLowerCase().includes(q) ||
+        String(f.allocatedCarParking || '').toLowerCase().includes(q) ||
         String(f.block || f.wing).toLowerCase().includes(q)
       );
     });
@@ -210,7 +231,9 @@ export const getDirectorySummary = asyncHandler(async (_req, res) => {
             isOccupied: f.isOccupied,
             residentType: f.residentType,
             ownerName: f.isOccupied ? f.ownerName : 'Unassigned',
-            allocatedParking: f.allocatedParking || '',
+            allocatedParking: f.allocatedParking || f.allocatedCarParking || f.allocatedBikeParking || '',
+            allocatedBikeParking: f.allocatedBikeParking || '',
+            allocatedCarParking: f.allocatedCarParking || (!f.allocatedBikeParking ? f.allocatedParking : ''),
           },
         ])
       );
@@ -230,7 +253,9 @@ export const getDirectorySummary = asyncHandler(async (_req, res) => {
       total: set.length,
       occupied: set.filter((f) => f.isOccupied).length,
       vacant: set.filter((f) => !f.isOccupied).length,
-      allocatedParking: set.filter((f) => f.allocatedParking).length,
+      allocatedParking: set.filter((f) => f.allocatedParking || f.allocatedBikeParking || f.allocatedCarParking).length,
+      allocatedBikeParking: set.filter((f) => f.allocatedBikeParking).length,
+      allocatedCarParking: set.filter((f) => f.allocatedCarParking || (!f.allocatedBikeParking && f.allocatedParking)).length,
       floors,
     };
   });
@@ -247,7 +272,9 @@ export const getDirectorySummary = asyncHandler(async (_req, res) => {
       totalFlats: flats.length,
       occupied: flats.filter((f) => f.isOccupied).length,
       vacant: flats.filter((f) => !f.isOccupied).length,
-      allocatedParking: flats.filter((f) => f.allocatedParking).length,
+      allocatedParking: flats.filter((f) => f.allocatedParking || f.allocatedBikeParking || f.allocatedCarParking).length,
+      allocatedBikeParking: flats.filter((f) => f.allocatedBikeParking).length,
+      allocatedCarParking: flats.filter((f) => f.allocatedCarParking || (!f.allocatedBikeParking && f.allocatedParking)).length,
       occupants: flats.filter((f) => f.residentType === 'Owner').length,
       tenants: flats.filter((f) => f.residentType === 'Tenant').length,
       byBlock,
@@ -320,12 +347,32 @@ export const getFlat = asyncHandler(async (req, res) => {
   });
 });
 
+async function validateParkingSlot(value, { prefix, fieldKey, label, flat, flatCount }) {
+  const slot = String(value || '').trim().toUpperCase();
+  if (!slot) return '';
+  const match = slot.match(new RegExp(`^${prefix}(\\d+)$`));
+  const number = Number(match?.[1]);
+  if (!match || !Number.isInteger(number) || number < 1 || number > flatCount) {
+    const error = new Error(`${label} must be ${prefix}1 to ${prefix}${flatCount}, or left unassigned`);
+    error.status = 400;
+    throw error;
+  }
+  const assignedFlat = await db.Flat.findOne({ [fieldKey]: slot });
+  if (assignedFlat && String(assignedFlat._id) !== String(flat._id)) {
+    const error = new Error(`${slot} is already assigned to flat ${assignedFlat.flatId}`);
+    error.status = 409;
+    throw error;
+  }
+  return slot;
+}
+
 /** PATCH /api/flats/:flatId — admin updates occupancy / owner / parking */
 export const updateFlat = asyncHandler(async (req, res) => {
   if (req.body.maintenanceRate !== undefined) {
     res.status(400);
     throw new Error('Maintenance is configured once for the whole society from the common maintenance setting');
   }
+  await ensureSocietyDirectory();
   const flat = await db.Flat.findOne({ flatId: String(req.params.flatId).toUpperCase() });
   if (!flat) {
     res.status(404);
@@ -333,9 +380,61 @@ export const updateFlat = asyncHandler(async (req, res) => {
   }
 
   const patch = {};
-  ['isOccupied', 'ownerName', 'residentType', 'allocatedParking'].forEach((key) => {
+  ['ownerName', 'residentType'].forEach((key) => {
     if (req.body[key] !== undefined) patch[key] = req.body[key];
   });
+  if (req.body.isOccupied !== undefined) {
+    patch.isOccupied = req.body.isOccupied === true || String(req.body.isOccupied).toLowerCase() === 'true';
+  }
+  const normalizeParking = (value) => String(value || '').trim().toUpperCase();
+  const bikeWasProvided = req.body.allocatedBikeParking !== undefined;
+  const carWasProvided = req.body.allocatedCarParking !== undefined;
+  const legacyWasProvided = req.body.allocatedParking !== undefined;
+  const updatesCarSlot = carWasProvided || (legacyWasProvided && !bikeWasProvided && !carWasProvided);
+  const flatCount = await db.Flat.countDocuments({});
+  if (bikeWasProvided) {
+    patch.allocatedBikeParking = await validateParkingSlot(req.body.allocatedBikeParking, {
+      prefix: 'PB', fieldKey: 'allocatedBikeParking', label: 'Bike parking', flat, flatCount,
+    });
+  }
+  if (updatesCarSlot) {
+    patch.allocatedCarParking = await validateParkingSlot(
+      carWasProvided ? req.body.allocatedCarParking : req.body.allocatedParking,
+      { prefix: 'PC', fieldKey: 'allocatedCarParking', label: 'Car parking', flat, flatCount }
+    );
+  }
+  const willBeOccupied = patch.isOccupied ?? flat.isOccupied;
+  if (patch.allocatedBikeParking && !willBeOccupied) {
+    const error = new Error('Bike parking can only be assigned to an occupied resident flat');
+    error.status = 400;
+    throw error;
+  }
+  if (patch.allocatedCarParking && !willBeOccupied) {
+    const error = new Error('Car parking can only be assigned to an occupied resident flat');
+    error.status = 400;
+    throw error;
+  }
+  if (patch.allocatedBikeParking && flat.allocatedBikeParking && patch.allocatedBikeParking !== flat.allocatedBikeParking) {
+    const error = new Error(`Flat ${flat.flatId} already has bike parking ${flat.allocatedBikeParking}; remove it before assigning another bike slot`);
+    error.status = 409;
+    throw error;
+  }
+  if (patch.allocatedCarParking && flat.allocatedCarParking && patch.allocatedCarParking !== flat.allocatedCarParking) {
+    const error = new Error(`Flat ${flat.flatId} already has car parking ${flat.allocatedCarParking}; remove it before assigning another car slot`);
+    error.status = 409;
+    throw error;
+  }
+  if (bikeWasProvided || carWasProvided || legacyWasProvided) {
+    const bikeSlot = patch.allocatedBikeParking ?? flat.allocatedBikeParking ?? '';
+    const carSlot = patch.allocatedCarParking ?? flat.allocatedCarParking ?? flat.allocatedParking ?? '';
+    patch.allocatedParking = carSlot || bikeSlot;
+  }
+  // Vacating a flat releases both spaces back into the society parking pool.
+  if (patch.isOccupied === false) {
+    patch.allocatedBikeParking = '';
+    patch.allocatedCarParking = '';
+    patch.allocatedParking = '';
+  }
 
   // Owner contact must be a valid 10-digit mobile when provided — an empty
   // value clears the stored number (e.g. when the flat is marked vacant).
@@ -356,6 +455,17 @@ export const updateFlat = asyncHandler(async (req, res) => {
   if (patch.allocatedParking !== undefined) patch.allocatedParking = String(patch.allocatedParking).toUpperCase();
 
   const updated = await db.Flat.findByIdAndUpdate(flat._id, { $set: patch }, { new: true });
+  const parkingChanged = bikeWasProvided || updatesCarSlot || legacyWasProvided || patch.isOccupied === false;
+  if (parkingChanged) {
+    const parkingUpdate = {
+      flatId: updated.flatId,
+      isOccupied: updated.isOccupied,
+      allocatedBikeParking: updated.allocatedBikeParking || '',
+      allocatedCarParking: updated.allocatedCarParking || '',
+    };
+    emitToFlat(updated.flatId, 'flat_updated', parkingUpdate);
+    emitToAdmins('flat_updated', parkingUpdate);
+  }
   res.json({
     success: true,
     message: `Flat ${updated.flatId} (Block ${updated.block || updated.wing} • Floor ${updated.floor}) updated`,

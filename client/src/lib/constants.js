@@ -70,6 +70,7 @@ export const PAYMENT_MODES = [
 export const ADMIN_TABS = [
   { id: 'OVERVIEW', label: 'Overview & KPIs' },
   { id: 'FLATS', label: 'Flats Directory' },
+  { id: 'PARKING', label: 'Parking Directory' },
   { id: 'APPROVALS', label: 'User Approvals' },
   { id: 'MAINTENANCE', label: 'Maintenance & Billing' },
   { id: 'GATE_LOGS', label: 'Live Gate Feed' },
@@ -82,6 +83,7 @@ export const ADMIN_TABS = [
 export const ADMIN_TITLES = {
   OVERVIEW: ['Society Command Center & Analytics', 'Khodaldham Society • Admin Control Panel'],
   FLATS: ['Society Building & Flats Directory', 'Blocks A / B / C • 5 floors × 4 flats each'],
+  PARKING: ['Society Parking Directory', 'One bike slot (PB) and one car slot (PC) for each flat'],
   APPROVALS: ['New Registration Approvals', 'Approve residents & guards before they can sign in'],
   MAINTENANCE: ['Maintenance Accounts & Revenue Ledger', 'Khodaldham Society • Admin Control Panel'],
   GATE_LOGS: ['Real-Time Security Gate Pass Log Feed', 'Khodaldham Society • Admin Control Panel'],
