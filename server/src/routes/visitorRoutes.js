@@ -16,7 +16,7 @@ const router = Router();
 router.use(protect);
 router.get('/logs', authorize('RESIDENT', 'ADMIN', 'GUARD'), getVisitorLogs);
 router.get('/stats', authorize('ADMIN', 'GUARD'), visitorStats);
-router.get('/passes', authorize('RESIDENT'), getMyPasses);
+router.get('/passes', authorize('RESIDENT', 'ADMIN', 'GUARD'), getMyPasses);
 router.post('/check-in', authorize('GUARD', 'ADMIN'), checkInVisitor);
 router.post('/pre-approve', authorize('RESIDENT'), createGatePass);
 router.post('/validate-pass', authorize('GUARD', 'ADMIN'), validatePass);

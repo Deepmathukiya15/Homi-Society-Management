@@ -1,4 +1,4 @@
-import { db } from '../store/index.js';
+import { db, plain } from '../store/index.js';
 import { asyncHandler, displayCodeFor, randomPassCode } from '../utils/helpers.js';
 import { formatMobile, validateMobileField, validateVehicleField } from '../utils/validators.js';
 import { emitToAdmins, emitToFlat, emitToGuards, emitToRoom } from '../realtime/socket.js';
@@ -358,10 +358,13 @@ export const getMyPasses = asyncHandler(async (req, res) => {
     success: true,
     passes: passes
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-      .map((p) => ({
-        ...p,
-        isExpired: p.status === 'EXPIRED' || new Date(p.validUntil).getTime() < Date.now(),
-      })),
+      .map((p) => {
+        const pass = plain(p);
+        return {
+          ...pass,
+          isExpired: pass.status === 'EXPIRED' || new Date(pass.validUntil).getTime() < Date.now(),
+        };
+      }),
   });
 });
 

@@ -5,11 +5,13 @@ import { visitorApi } from '../../lib/api.js';
 import { useToast } from '../../context/ToastContext.jsx';
 import { dateTimeShort, formatMobile, formatVehicle, timeAgo } from '../../lib/format.js';
 import { playScan } from '../../lib/sound.js';
+import { useSocket } from '../../context/SocketContext.jsx';
 
 const DEMO_CODES = ['4421987654'];
 
 export default function GuardScanner() {
   const toast = useToast();
+  const { on } = useSocket();
   const [code, setCode] = useState('');
   const [scanning, setScanning] = useState(false);
   const [result, setResult] = useState(null);
@@ -30,6 +32,11 @@ export default function GuardScanner() {
     loadPasses();
     return () => clearTimeout(timerRef.current);
   }, []);
+
+  useEffect(() => {
+    const offs = [on('gate_pass_issued', loadPasses), on('visitor_updated', loadPasses)];
+    return () => offs.forEach((off) => off());
+  }, [on]);
 
   const validate = async (rawCode) => {
     const value = String(rawCode || code).trim();

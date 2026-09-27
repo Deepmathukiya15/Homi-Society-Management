@@ -4,21 +4,27 @@ import { Button, EmptyState, LiveDot, Pill, SectionCard, Select, StatCard } from
 import { visitorApi } from '../../lib/api.js';
 import { useToast } from '../../context/ToastContext.jsx';
 import { useSocket } from '../../context/SocketContext.jsx';
-import { clockTime, formatMobile, formatVehicle, timeAgo, VISITOR_PILL } from '../../lib/format.js';
+import { clockTime, dateTimeShort, formatMobile, formatVehicle, timeAgo, VISITOR_PILL } from '../../lib/format.js';
 
 export default function AdminGateFeed() {
   const toast = useToast();
   const { on, connected } = useSocket();
   const [data, setData] = useState({ visitors: [], activeVisitorsInside: 0, pending: 0, count: 0 });
   const [stats, setStats] = useState(null);
+  const [passes, setPasses] = useState([]);
   const [status, setStatus] = useState('ALL');
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     try {
-      const [logs, s] = await Promise.all([visitorApi.logs({ status }), visitorApi.stats()]);
+      const [logs, s, issuedPasses] = await Promise.all([
+        visitorApi.logs({ status }),
+        visitorApi.stats(),
+        visitorApi.myPasses(),
+      ]);
       setData(logs);
       setStats(s.stats);
+      setPasses(issuedPasses.passes || []);
     } catch (err) {
       toast.alert('Gate Feed Error', err.message);
     } finally {
@@ -80,6 +86,45 @@ export default function AdminGateFeed() {
             ))}
           </Select>
         </div>
+      </SectionCard>
+
+      <SectionCard className="p-4">
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <div>
+            <h3 className="text-sm font-bold text-slate-900">Resident-Issued Gate Passes</h3>
+            <p className="text-xs text-slate-500 mt-0.5">Pre-registered guests waiting to arrive at the gate</p>
+          </div>
+          <span className="text-xs font-semibold text-slate-500">{passes.filter((pass) => pass.status === 'ACTIVE' && !pass.isExpired).length} active</span>
+        </div>
+        {passes.length === 0 ? (
+          <p className="text-xs text-slate-500 py-2">No resident-issued gate passes yet.</p>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            {passes.map((pass) => {
+              const passStatus = pass.isExpired ? 'EXPIRED' : pass.status;
+              const passTone = passStatus === 'ACTIVE'
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                : passStatus === 'USED'
+                  ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                  : 'bg-slate-100 text-slate-600 border-slate-200';
+              return (
+                <div key={pass._id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-bold text-slate-900 truncate">{pass.guestName}</span>
+                    <Pill className={`border ${passTone}`}>{passStatus}</Pill>
+                  </div>
+                  <div className="mt-1 text-xs text-slate-600 flex flex-wrap gap-x-4 gap-y-1">
+                    <span>Flat <strong className="text-slate-800">{pass.flatId}</strong></span>
+                    <span>Resident: <strong className="text-slate-800">{pass.residentName || 'Resident'}</strong></span>
+                    <span>{pass.purpose || 'Guest'}</span>
+                    {pass.phone && <span>{formatMobile(pass.phone)}</span>}
+                    <span>Valid until <strong className="text-slate-800">{dateTimeShort(pass.validUntil)}</strong></span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </SectionCard>
 
       <div className="space-y-3">
