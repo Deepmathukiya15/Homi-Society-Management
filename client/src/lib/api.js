@@ -95,6 +95,8 @@ export const authApi = {
 export const flatApi = {
   list: (params) => api.get('/flats', { params }).then((r) => r.data),
   summary: () => api.get('/flats/directory/summary').then((r) => r.data),
+  maintenanceRate: () => api.get('/flats/maintenance-rate').then((r) => r.data),
+  setMaintenanceRate: (maintenanceRate) => api.patch('/flats/maintenance-rate', { maintenanceRate }).then((r) => r.data),
   /** Public: flats with no registered account yet (used by New Registration). */
   available: () => api.get('/flats/available').then((r) => r.data),
   get: (flatId) => api.get(`/flats/${flatId}`).then((r) => r.data),

@@ -272,6 +272,7 @@ export const memoryModels = {
   GatePass: new MemoryModel('GatePass'),
   Meeting: new MemoryModel('Meeting'),
   SalaryPayment: new MemoryModel('SalaryPayment'),
+  SocietySetting: new MemoryModel('SocietySetting'),
 };
 
 export const resetMemoryStore = () => {

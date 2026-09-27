@@ -77,11 +77,23 @@ export default function AdminPortal() {
     () =>
       on('registration:pending', (payload) => {
         setPendingCount((c) => c + 1);
+        setRefreshKey((k) => k + 1);
         toast.info('New Registration', payload?.message || 'A new account is waiting for your approval.');
       }),
     [on, toast]
   );
 
+  // Approval events refresh the flat cards and occupancy totals for all open admin sessions.
+  useEffect(
+    () => on('user:approval', (payload) => {
+      setRefreshKey((k) => k + 1);
+      loadPendingCount();
+      if (payload?.user?.role === 'RESIDENT' && payload.status === 'APPROVED') {
+        toast.success('Flat Directory Updated', `${payload.user.name} is now shown in Flat ${payload.user.flatId}.`);
+      }
+    }),
+    [on, loadPendingCount, toast]
+  );
 
   const setTab = (id) => {
     const next = new URLSearchParams(params);

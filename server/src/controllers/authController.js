@@ -104,6 +104,10 @@ export const register = asyncHandler(async (req, res) => {
       res.status(404);
       throw new Error(`Flat ${flatId} was not found in the society directory`);
     }
+    if (flat.isOccupied) {
+      res.status(409);
+      throw new Error(`Flat ${String(flatId).toUpperCase()} is already occupied — please choose a vacant flat`);
+    }
 
     // One account per home: a flat that is already registered is never re-issued.
     // Rejected registrations release the flat, so they do not count as claimed.

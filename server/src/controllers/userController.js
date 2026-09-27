@@ -117,11 +117,57 @@ export const setApproval = asyncHandler(async (req, res) => {
     throw new Error('The admin account cannot be rejected');
   }
 
+  const residentFlat = user.role === 'RESIDENT' && user.flatId
+    ? await db.Flat.findOne({ flatId: String(user.flatId).toUpperCase() })
+    : null;
+
+  if (user.role === 'RESIDENT' && status !== 'REJECTED') {
+    if (status === 'APPROVED' && !residentFlat) {
+      res.status(409);
+      throw new Error(`Cannot approve ${user.name}: flat ${user.flatId || '—'} is missing from the flat directory`);
+    }
+    const otherClaims = (await db.User.find({ flatId: String(user.flatId || '').toUpperCase() })).filter(
+      (candidate) => String(candidate._id) !== String(user._id) && (candidate.approvalStatus || 'APPROVED') !== 'REJECTED'
+    );
+    if (otherClaims.length) {
+      res.status(409);
+      throw new Error(`Flat ${user.flatId} is already reserved by another resident account`);
+    }
+    if (status === 'APPROVED' && residentFlat?.isOccupied && residentFlat.ownerName && residentFlat.ownerName !== user.name) {
+      res.status(409);
+      throw new Error(`Flat ${user.flatId} is already marked occupied by ${residentFlat.ownerName}`);
+    }
+  }
+
   const updated = await db.User.findByIdAndUpdate(
     user._id,
     { $set: { approvalStatus: status, approvedBy: req.user.name, approvedAt: new Date() } },
     { new: true }
   );
+
+  if (user.role === 'RESIDENT' && residentFlat && status === 'APPROVED') {
+    await db.Flat.findByIdAndUpdate(
+      residentFlat._id,
+      { $set: {
+        isOccupied: true,
+        ownerName: user.name,
+        ownerContact: user.contactNumber || '',
+        residentType: residentFlat.residentType === 'Tenant' ? 'Tenant' : 'Owner',
+      } },
+      { new: true }
+    );
+  } else if (user.role === 'RESIDENT' && residentFlat && status === 'REJECTED') {
+    const remainingClaims = (await db.User.find({ flatId: String(user.flatId).toUpperCase() })).filter(
+      (candidate) => String(candidate._id) !== String(user._id) && (candidate.approvalStatus || 'APPROVED') !== 'REJECTED'
+    );
+    if (!remainingClaims.length && (!residentFlat.isOccupied || residentFlat.ownerName === user.name)) {
+      await db.Flat.findByIdAndUpdate(
+        residentFlat._id,
+        { $set: { isOccupied: false, ownerName: 'Unassigned', ownerContact: '', residentType: 'Vacant' } },
+        { new: true }
+      );
+    }
+  }
 
   // Let the admin feed and the user's own device hear about the decision.
   emitToRoom('admin_feed', 'user:approval', { user: toSafeUser(updated), status });

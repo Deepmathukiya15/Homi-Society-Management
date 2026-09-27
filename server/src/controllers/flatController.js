@@ -1,6 +1,7 @@
 import { db } from '../store/index.js';
 import { asyncHandler, BLOCKS, FLOORS, UNITS_PER_FLOOR, flatIdFor, flatNumberFor, parseFlatId } from '../utils/helpers.js';
 import { formatMobile, validateMobileField } from '../utils/validators.js';
+import { FLATS as DIRECTORY_FLATS } from '../seed/seedData.js';
 
 /** Residents see the society directory but never other owners' phone numbers. */
 const projectFlat = (flat, viewer) => {
@@ -32,11 +33,79 @@ const sortFlats = (list) =>
       Number(a.unit) - Number(b.unit)
   );
 
+/** Keep all 60 known homes visible even if an older database was seeded partially. */
+const MAINTENANCE_SETTING_KEY = 'society-default-maintenance-rate';
+
+let directoryEnsurePromise = null;
+async function ensureSocietyDirectoryInternal() {
+  const [flats, setting] = await Promise.all([
+    db.Flat.find({}),
+    db.SocietySetting.findOne({ key: MAINTENANCE_SETTING_KEY }),
+  ]);
+  const sharedRate = Number(setting?.value);
+  const byId = new Map(flats.map((flat) => [String(flat.flatId).toUpperCase(), flat]));
+
+  for (const template of DIRECTORY_FLATS) {
+    const id = String(template.flatId).toUpperCase();
+    if (byId.has(id)) continue;
+    const { email: _email, ...base } = template;
+    try {
+      const created = await db.Flat.create({
+        ...base,
+        isOccupied: false,
+        ownerName: 'Unassigned',
+        ownerContact: '',
+        residentType: 'Vacant',
+        allocatedParking: '',
+        maintenanceRate: Number.isFinite(sharedRate) && sharedRate > 0 ? sharedRate : Number(base.maintenanceRate || 2500),
+      });
+      byId.set(id, created);
+    } catch (error) {
+      if (error?.code !== 11000) throw error;
+      const created = await db.Flat.findOne({ flatId: id });
+      if (created) byId.set(id, created);
+    }
+  }
+
+  // Repair older approved registrations whose flat card was never synchronized on approval.
+  const residents = (await db.User.find({})).filter(
+    (user) => ['RESIDENT', 'ADMIN'].includes(user.role) && (user.approvalStatus || 'APPROVED') === 'APPROVED' && user.flatId
+  );
+  const accountsByFlat = new Map();
+  for (const user of residents) {
+    const id = String(user.flatId).toUpperCase();
+    if (!accountsByFlat.has(id)) accountsByFlat.set(id, []);
+    accountsByFlat.get(id).push(user);
+  }
+  for (const [id, accounts] of accountsByFlat) {
+    if (accounts.length !== 1) continue;
+    const user = accounts[0];
+    const flat = byId.get(id);
+    if (!flat || (flat.isOccupied && flat.ownerName && flat.ownerName !== 'Unassigned' && flat.ownerName !== user.name)) continue;
+    await db.Flat.findByIdAndUpdate(flat._id, { $set: {
+      isOccupied: true,
+      ownerName: user.name,
+      ownerContact: user.contactNumber || '',
+      residentType: flat.residentType === 'Tenant' ? 'Tenant' : 'Owner',
+    } }, { new: true });
+  }
+}
+
+function ensureSocietyDirectory() {
+  if (!directoryEnsurePromise) {
+    directoryEnsurePromise = ensureSocietyDirectoryInternal().finally(() => {
+      directoryEnsurePromise = null;
+    });
+  }
+  return directoryEnsurePromise;
+}
+
 /** GET /api/flats?block=A&floor=3&occupancy=OCCUPIED&search=patel */
 export const getFlats = asyncHandler(async (req, res) => {
   const { block, wing, floor = 'ALL', occupancy = 'ALL', search = '' } = req.query;
   const blockFilter = String(block || wing || 'ALL').toUpperCase();
 
+  await ensureSocietyDirectory();
   const flats = await db.Flat.find({});
 
   const filtered = flats
@@ -69,6 +138,7 @@ export const getFlats = asyncHandler(async (req, res) => {
  * never be offered again, so the sign-up picker only lists unclaimed flats.
  */
 export const getAvailableFlats = asyncHandler(async (req, res) => {
+  await ensureSocietyDirectory();
   const flats = await db.Flat.find({});
   const users = await db.User.find({});
 
@@ -81,9 +151,13 @@ export const getAvailableFlats = asyncHandler(async (req, res) => {
       .filter(Boolean),
   );
 
+  const occupied = new Set(
+    flats.filter((flat) => flat.isOccupied).map((flat) => String(flat.flatId).toUpperCase())
+  );
+  const claimedOrOccupied = new Set([...claimed, ...occupied]);
   const available = flats
     .map((f) => String(f.flatId).toUpperCase())
-    .filter((flatId) => !claimed.has(flatId))
+    .filter((flatId) => !claimedOrOccupied.has(flatId))
     .sort();
 
   const byBlock = BLOCKS.map((block) => ({
@@ -98,7 +172,7 @@ export const getAvailableFlats = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     totalFlats: flats.length,
-    claimed: claimed.size,
+    claimed: claimedOrOccupied.size,
     availableCount: available.length,
     available,
     byBlock,
@@ -117,6 +191,7 @@ export const getAvailableFlats = asyncHandler(async (req, res) => {
  * drives the block/floor visuals across the portals.
  */
 export const getDirectorySummary = asyncHandler(async (_req, res) => {
+  await ensureSocietyDirectory();
   const flats = await db.Flat.find({});
   const blocks = [...new Set(flats.map((f) => f.block || f.wing))].sort();
 
@@ -181,6 +256,42 @@ export const getDirectorySummary = asyncHandler(async (_req, res) => {
   });
 });
 
+/** Society-wide monthly maintenance setting; one admin change applies to every flat. */
+export const getSocietyMaintenanceRate = asyncHandler(async (_req, res) => {
+  const setting = await db.SocietySetting.findOne({ key: MAINTENANCE_SETTING_KEY });
+  const flats = await db.Flat.find({});
+  const rates = [...new Set(flats.map((flat) => Number(flat.maintenanceRate || 0)).filter((rate) => rate > 0))].sort((a, b) => a - b);
+  res.json({
+    success: true,
+    maintenanceRate: setting ? Number(setting.value) : null,
+    isSet: Boolean(setting),
+    currentRates: rates,
+    ratesVary: rates.length > 1,
+  });
+});
+
+export const setSocietyMaintenanceRate = asyncHandler(async (req, res) => {
+  const amount = Number(req.body.maintenanceRate);
+  if (!Number.isFinite(amount) || amount <= 0 || amount > 1000000) {
+    res.status(400);
+    throw new Error('Society-wide monthly maintenance must be between ₹1 and ₹10,00,000');
+  }
+  const rate = Math.round(amount * 100) / 100;
+  await ensureSocietyDirectory();
+  const update = await db.Flat.updateMany({}, { $set: { maintenanceRate: rate } });
+  const existing = await db.SocietySetting.findOne({ key: MAINTENANCE_SETTING_KEY });
+  const setting = existing
+    ? await db.SocietySetting.findByIdAndUpdate(existing._id, { $set: { value: rate, updatedBy: req.user.name } }, { new: true })
+    : await db.SocietySetting.create({ key: MAINTENANCE_SETTING_KEY, value: rate, updatedBy: req.user.name });
+  const updatedFlats = update.matchedCount ?? update.n ?? update.modifiedCount ?? 0;
+  res.json({
+    success: true,
+    message: `Monthly maintenance set to ₹${rate.toLocaleString('en-IN')} for all ${updatedFlats} flats. New flats will use this rate automatically.`,
+    maintenanceRate: Number(setting.value),
+    updatedFlats,
+  });
+});
+
 /** GET /api/flats/:flatId */
 export const getFlat = asyncHandler(async (req, res) => {
   const flat = await db.Flat.findOne({ flatId: String(req.params.flatId).toUpperCase() });
@@ -211,6 +322,10 @@ export const getFlat = asyncHandler(async (req, res) => {
 
 /** PATCH /api/flats/:flatId — admin updates occupancy / owner / parking */
 export const updateFlat = asyncHandler(async (req, res) => {
+  if (req.body.maintenanceRate !== undefined) {
+    res.status(400);
+    throw new Error('Maintenance is configured once for the whole society from the common maintenance setting');
+  }
   const flat = await db.Flat.findOne({ flatId: String(req.params.flatId).toUpperCase() });
   if (!flat) {
     res.status(404);
@@ -218,7 +333,7 @@ export const updateFlat = asyncHandler(async (req, res) => {
   }
 
   const patch = {};
-  ['isOccupied', 'ownerName', 'residentType', 'allocatedParking', 'maintenanceRate'].forEach((key) => {
+  ['isOccupied', 'ownerName', 'residentType', 'allocatedParking'].forEach((key) => {
     if (req.body[key] !== undefined) patch[key] = req.body[key];
   });
 
@@ -238,7 +353,6 @@ export const updateFlat = asyncHandler(async (req, res) => {
     }
   }
 
-  if (patch.maintenanceRate !== undefined) patch.maintenanceRate = Number(patch.maintenanceRate);
   if (patch.allocatedParking !== undefined) patch.allocatedParking = String(patch.allocatedParking).toUpperCase();
 
   const updated = await db.Flat.findByIdAndUpdate(flat._id, { $set: patch }, { new: true });
@@ -297,6 +411,9 @@ export const createFlat = asyncHandler(async (req, res) => {
     ownerContact = mobile.value;
   }
 
+  const maintenanceSetting = await db.SocietySetting.findOne({ key: MAINTENANCE_SETTING_KEY });
+  const defaultMaintenanceRate = Number(maintenanceSetting?.value) || 2500;
+
   const flat = await db.Flat.create({
     flatId,
     block: b,
@@ -305,7 +422,7 @@ export const createFlat = asyncHandler(async (req, res) => {
     floor: Number(f),
     unit: Number(u),
     area: Number(req.body.area || 1180 + (Number(f) - 1) * 60),
-    maintenanceRate: Number(req.body.maintenanceRate || 2500),
+    maintenanceRate: defaultMaintenanceRate,
     isOccupied: Boolean(req.body.isOccupied),
     ownerName: req.body.ownerName || 'Unassigned',
     ownerContact,

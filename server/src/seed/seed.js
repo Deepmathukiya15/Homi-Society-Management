@@ -31,11 +31,15 @@ async function buildHashCache(users) {
 }
 
 async function seedFlats() {
+  const maintenanceSetting = await db.SocietySetting.findOne({ key: 'society-default-maintenance-rate' });
   for (const flat of FLATS) {
     const exists = await db.Flat.findOne({ flatId: flat.flatId });
     if (exists) continue;
     const { email, ...doc } = flat;
-    await db.Flat.create(doc);
+    await db.Flat.create({
+      ...doc,
+      ...(maintenanceSetting ? { maintenanceRate: Number(maintenanceSetting.value) } : {}),
+    });
   }
 }
 
@@ -229,7 +233,7 @@ async function seedVisitors() {
 export async function runSeed({ force = false } = {}) {
   if (force) {
     clearSnapshot();
-    for (const model of ['User', 'Flat', 'Visitor', 'Bill', 'Notice', 'Complaint', 'GatePass', 'Meeting', 'SalaryPayment']) {
+    for (const model of ['User', 'Flat', 'Visitor', 'Bill', 'Notice', 'Complaint', 'GatePass', 'Meeting', 'SalaryPayment', 'SocietySetting']) {
       await db[model].deleteMany({});
     }
   }

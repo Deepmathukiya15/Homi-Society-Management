@@ -91,6 +91,9 @@ export function SocketProvider({ children }) {
     socket.io.on('reconnect_attempt', () => setStatus('RECONNECTING'));
     socket.on('disconnect', () => setStatus('RECONNECTING'));
 
+    socket.on('registration:pending', (payload) => emitLocal('registration:pending', payload));
+    socket.on('user:approval', (payload) => emitLocal('user:approval', payload));
+
     // ── Live visitor sanction request → resident approval popup ───────────
     socket.on('new_visitor_request', (payload) => {
       setIncomingVisitor(payload);

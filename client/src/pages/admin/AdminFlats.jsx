@@ -42,6 +42,9 @@ export default function AdminFlats() {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({});
   const [saving, setSaving] = useState(false);
+  const [maintenanceRateDraft, setMaintenanceRateDraft] = useState('');
+  const [societyMaintenanceRate, setSocietyMaintenanceRate] = useState(null);
+  const [applyingMaintenanceRate, setApplyingMaintenanceRate] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newFlat, setNewFlat] = useState({ block: 'B', floor: 3, flatId: 'B-301' });
   const [newOwner, setNewOwner] = useState({ ownerName: '', ownerContact: '' });
@@ -49,12 +52,15 @@ export default function AdminFlats() {
   const load = async () => {
     setLoading(true);
     try {
-      const [list, sum] = await Promise.all([
+      const [list, sum, rate] = await Promise.all([
         flatApi.list({ block, floor, occupancy, search }),
         flatApi.summary(),
+        flatApi.maintenanceRate(),
       ]);
       setFlats(list.flats);
       setSummary(sum.summary);
+      setSocietyMaintenanceRate(rate.maintenanceRate ?? null);
+      setMaintenanceRateDraft(rate.maintenanceRate == null ? '' : String(rate.maintenanceRate));
     } catch (err) {
       toast.alert('Directory Error', err.message);
     } finally {
@@ -81,7 +87,6 @@ export default function AdminFlats() {
       ownerContact: flat.ownerContact || '',
       residentType: flat.residentType,
       allocatedParking: flat.allocatedParking || '',
-      maintenanceRate: flat.maintenanceRate,
     });
   };
 
@@ -95,7 +100,6 @@ export default function AdminFlats() {
       const res = await flatApi.update(editing.flatId, {
         ...form,
         isOccupied: form.isOccupied === true || form.isOccupied === 'true',
-        maintenanceRate: Number(form.maintenanceRate),
       });
       toast.success('Flat Updated', res.message);
       setEditing(null);
@@ -104,6 +108,26 @@ export default function AdminFlats() {
       toast.alert('Update Failed', err.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const applyMaintenanceRate = async () => {
+    const amount = Number(maintenanceRateDraft);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      toast.alert('Invalid Maintenance Rate', 'Enter a monthly rate greater than ₹0.');
+      return;
+    }
+    setApplyingMaintenanceRate(true);
+    try {
+      const result = await flatApi.setMaintenanceRate(amount);
+      setSocietyMaintenanceRate(result.maintenanceRate);
+      setMaintenanceRateDraft(String(result.maintenanceRate));
+      toast.success('Society Maintenance Updated', result.message);
+      await load();
+    } catch (error) {
+      toast.alert('Could Not Apply Maintenance Rate', error.message);
+    } finally {
+      setApplyingMaintenanceRate(false);
     }
   };
 
@@ -159,6 +183,29 @@ export default function AdminFlats() {
         />
         <StatCard label="Avg. Maintenance" value={inr(avgMaintenance)} sub="Base rate per flat / month" icon={Users} tone="amber" />
       </div>
+
+      <SectionCard className="p-4 sm:p-5">
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
+          <div className="space-y-1">
+            <h3 className="text-sm font-bold text-slate-900">Common Maintenance for All Flats</h3>
+            <p className="text-xs text-slate-500">Set once here to apply the same monthly rate to all flats and future flats. Bills already issued will not be changed.</p>
+            <p className="text-xs font-semibold text-indigo-700">
+              {societyMaintenanceRate != null
+                ? `Current society-wide rate: ${inr(societyMaintenanceRate)} / month`
+                : 'No common rate saved yet; applying one will make all flat rates the same.'}
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row sm:items-end gap-2">
+            <Field label="Monthly rate per flat (₹)">
+              <Input type="number" min="1" step="50" className="sm:!w-48" value={maintenanceRateDraft} onChange={(event) => setMaintenanceRateDraft(event.target.value)} placeholder="e.g. 2500" />
+            </Field>
+            <Button variant="success" onClick={applyMaintenanceRate} disabled={applyingMaintenanceRate || !maintenanceRateDraft}>
+              {applyingMaintenanceRate ? 'Applying to all flats…' : 'Apply to All Flats'}
+            </Button>
+          </div>
+        </div>
+        <p className="mt-3 text-[11px] text-slate-500">Parking allocation remains separate: assign each flat’s parking slot from that flat’s Manage Flat panel.</p>
+      </SectionCard>
 
       {/* ── Live building directory: Block A/B/C → 5 floors → 4 flats ── */}
       <SectionCard className="p-5">
@@ -352,21 +399,15 @@ export default function AdminFlats() {
                 </Select>
               </Field>
             </div>
-            <div className="grid grid-cols-2 gap-3.5">
-              <Field label="Allocated Parking">
-                <Input
-                  value={form.allocatedParking}
-                  placeholder="P-A1"
-                  onChange={(e) => setForm({ ...form, allocatedParking: e.target.value.toUpperCase() })}
-                />
-              </Field>
-              <Field label="Base Maintenance (₹)">
-                <Input
-                  type="number"
-                  value={form.maintenanceRate}
-                  onChange={(e) => setForm({ ...form, maintenanceRate: e.target.value })}
-                />
-              </Field>
+            <Field label="Allocated Parking (set per flat by Admin)">
+              <Input
+                value={form.allocatedParking}
+                placeholder="P-A1"
+                onChange={(e) => setForm({ ...form, allocatedParking: e.target.value.toUpperCase() })}
+              />
+            </Field>
+            <div className="rounded-xl border border-indigo-100 bg-indigo-50/60 p-3 text-[11px] text-indigo-800">
+              Monthly maintenance is controlled by the common society-wide rate setting and is the same for every flat.
             </div>
             <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-[11px] text-slate-600 font-medium leading-relaxed">
               Flat numbering follows the society layout — Block {editing.block || editing.wing}, Floor {editing.floor},
