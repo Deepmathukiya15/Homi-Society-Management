@@ -81,6 +81,7 @@ export const ADMIN_TABS = [
 ];
 
 export const ADMIN_TITLES = {
+  MODULES: ['Management Modules', 'Choose a module to open its tools and records'],
   OVERVIEW: ['Society Command Center & Analytics', 'Khodaldham Society • Admin Control Panel'],
   FLATS: ['Society Building & Flats Directory', 'Blocks A / B / C • 5 floors × 4 flats each'],
   PARKING: ['Society Parking Directory', 'One bike slot (PB) and one car slot (PC) for each flat'],
@@ -95,6 +96,7 @@ export const ADMIN_TITLES = {
 
 export const RESIDENT_TABS = [
   { id: 'BILLS', label: 'Maintenance Bills' },
+  { id: 'PARKING', label: 'My Parking' },
   { id: 'QR_PASS', label: 'QR Gate Pass Generator' },
   { id: 'GATE_ACTIVITY', label: 'Gate Activity Log' },
   { id: 'NOTICES', label: 'Notice Board' },

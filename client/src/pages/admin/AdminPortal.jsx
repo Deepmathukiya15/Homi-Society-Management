@@ -8,17 +8,16 @@ import {
   RefreshCw,
   ReceiptText,
   ScanLine,
-  Server,
   Gauge,
   Wrench,
   Loader2,
   UserCheck,
   Users,
   Sparkles,
+  LayoutGrid,
 } from 'lucide-react';
-import { LogoBadge } from '../../components/Logo.jsx';
 import { Button } from '../../components/ui.jsx';
-import { useAuth } from '../../context/AuthContext.jsx';
+import PortalModuleGrid from '../../components/PortalModuleGrid.jsx';
 import { useSocket } from '../../context/SocketContext.jsx';
 import { useToast } from '../../context/ToastContext.jsx';
 import { authApi, maintenanceApi } from '../../lib/api.js';
@@ -35,6 +34,7 @@ import AdminCommittee from './AdminCommittee.jsx';
 import AdminPayroll from './AdminPayroll.jsx';
 
 const ICONS = {
+  MODULES: LayoutGrid,
   OVERVIEW: Gauge,
   APPROVALS: UserCheck,
   FLATS: Building2,
@@ -47,13 +47,25 @@ const ICONS = {
   STAFF_PAYROLL: Sparkles,
 };
 
+const MODULE_INFO = {
+  OVERVIEW: ['Society occupancy, dues and activity at a glance', 'indigo'],
+  FLATS: ['View homes, residents, occupancy and resident details', 'emerald'],
+  PARKING: ['Browse PB bike and PC car parking and manage assignments', 'violet'],
+  APPROVALS: ['Review resident and guard registration requests', 'amber'],
+  MAINTENANCE: ['Manage society maintenance billing and payments', 'rose'],
+  GATE_LOGS: ['Monitor live visitor and gate activity', 'sky'],
+  NOTICES: ['Create and publish society notices', 'amber'],
+  COMMITTEE: ['Manage approved committee members and meetings', 'indigo'],
+  COMPLAINTS: ['Review and resolve resident helpdesk tickets', 'rose'],
+  STAFF_PAYROLL: ['Manage cleaning staff salary records', 'emerald'],
+};
+
 export default function AdminPortal() {
   const [params, setParams] = useSearchParams();
   const toast = useToast();
-  const { user } = useAuth();
-  const { status, connected, on } = useSocket();
-  const tab = ADMIN_TABS.some((t) => t.id === params.get('tab')) ? params.get('tab') : 'OVERVIEW';
-  const [refreshing, setRefreshing] = useState(false);
+  const { on } = useSocket();
+  const requestedTab = params.get('tab');
+  const tab = requestedTab === 'MODULES' || ADMIN_TABS.some((t) => t.id === requestedTab) ? requestedTab : 'MODULES';
   const [refreshKey, setRefreshKey] = useState(0);
   const [noticeSignal, setNoticeSignal] = useState(0);
   const [cronRunning, setCronRunning] = useState(false);
@@ -106,9 +118,7 @@ export default function AdminPortal() {
 
   const refreshAll = useCallback(
     (silent = false) => {
-      setRefreshing(true);
       setRefreshKey((k) => k + 1);
-      setTimeout(() => setRefreshing(false), 700);
       if (!silent) toast.info('Data Refreshed', 'Latest society ledger and gate telemetry pulled from the API.');
     },
     [toast]
@@ -147,76 +157,27 @@ export default function AdminPortal() {
   const [title, subtitle] = ADMIN_TITLES[tab];
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-[#f8fafc] text-slate-800 flex flex-col md:flex-row">
-      <aside className="w-full md:w-64 bg-[#0f172a] border-r border-slate-800 p-4 shrink-0 flex md:flex-col justify-between text-slate-300 shadow-xs md:sticky md:top-16 md:h-[calc(100vh-4rem)]">
-        <div className="space-y-6 w-full">
-          <div className="hidden md:block pb-2 border-b border-slate-800/80">
-            <div className="mb-3 flex items-center gap-2.5">
-              <LogoBadge className="w-10 h-10 shrink-0" />
-              <div>
-                <div className="text-sm font-black text-white tracking-tight leading-none">HOMI</div>
-                <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">
-                  Blocks A / B / C
-                </div>
-              </div>
-            </div>
-            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Management Modules</div>
-          </div>
+    <div className="min-h-[calc(100vh-4rem)] bg-[#f8fafc] text-slate-800">
 
-          <nav className="flex md:flex-col gap-1.5 overflow-x-auto pb-2 md:pb-0 no-scrollbar">
-            {ADMIN_TABS.map((item) => {
-              const Icon = ICONS[item.id];
-              const active = tab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => setTab(item.id)}
-                  className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
-                    active ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-400 hover:text-white hover:bg-slate-800/70'
-                  }`}
-                >
-                  <Icon className={`w-4 h-4 ${active ? 'text-white' : 'text-slate-400'}`} />
-                  <span>{item.label}</span>
-                  {item.id === 'APPROVALS' && pendingCount > 0 && (
-                    <span
-                      className={`ml-auto text-[10px] font-black px-1.5 py-0.5 rounded-md ${
-                        active ? 'bg-white/25 text-white' : 'bg-amber-400 text-slate-900'
-                      }`}
-                    >
-                      {pendingCount}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </nav>
-        </div>
 
-        <div className="hidden md:block pt-4 border-t border-slate-800 space-y-2">
-          <div className="flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-wider">
-            <span className={`w-2 h-2 rounded-full ${connected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
-            <span className="text-slate-400 truncate">{status}</span>
-          </div>
-          <button
-            onClick={() => refreshAll()}
-            className="w-full flex items-center justify-center gap-2 p-2.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors border border-slate-700/60"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-            Refresh Data
-          </button>
-          <div className="px-1 pt-1 text-[10px] text-slate-500 font-medium flex items-center gap-1.5">
-            <Server className="w-3 h-3" /> Admin: {user?.name}
-          </div>
-        </div>
-      </aside>
-
-      <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto max-w-[1400px] w-full">
+      <main className="p-4 sm:p-6 lg:p-8 overflow-y-auto max-w-[1400px] w-full mx-auto">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">{title}</h1>
             <p className="text-xs text-slate-500 mt-0.5 font-medium">{subtitle}</p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              variant="outline"
+              size="md"
+              icon={RefreshCw}
+              onClick={() => refreshAll(true)}
+              title="Refresh data"
+              aria-label="Refresh data"
+            />
+            {tab !== 'MODULES' && (
+              <Button variant="outline" icon={LayoutGrid} onClick={() => setTab('MODULES')}>Modules</Button>
+            )}
             {tab === 'NOTICES' && (
               <Button icon={Bell} onClick={() => setNoticeSignal((s) => s + 1)}>
                 Publish Notice
@@ -237,6 +198,21 @@ export default function AdminPortal() {
           </div>
         </div>
 
+        {tab === 'MODULES' && (
+          <PortalModuleGrid
+            title="Management Modules"
+            subtitle="Select a card to open that module."
+            modules={ADMIN_TABS.filter((item) => item.id !== 'MODULES').map((item) => ({
+              id: item.id,
+              label: item.label,
+              icon: ICONS[item.id],
+              description: MODULE_INFO[item.id]?.[0],
+              tone: MODULE_INFO[item.id]?.[1],
+              badge: item.id === 'APPROVALS' ? pendingCount : 0,
+            }))}
+            onOpen={setTab}
+          />
+        )}
         {tab === 'OVERVIEW' && <AdminOverview key={refreshKey} onOpenTab={setTab} />}
         {tab === 'FLATS' && <AdminFlats key={refreshKey} />}
         {tab === 'PARKING' && <AdminParking key={refreshKey} />}

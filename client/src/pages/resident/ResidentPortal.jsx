@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Bell, Bike, Car, CreditCard, QrCode, ScanLine, ShieldCheck, Wrench } from 'lucide-react';
+import { Bell, Bike, Car, CreditCard, LayoutGrid, QrCode, ScanLine, ShieldCheck, Wrench } from 'lucide-react';
 import { Button, Pill, SectionCard } from '../../components/ui.jsx';
+import PortalModuleGrid from '../../components/PortalModuleGrid.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useSocket } from '../../context/SocketContext.jsx';
 import { complaintApi, flatApi, maintenanceApi, noticeApi, visitorApi } from '../../lib/api.js';
@@ -13,13 +14,22 @@ import ResidentGateActivity from './ResidentGateActivity.jsx';
 import ResidentNotices from './ResidentNotices.jsx';
 import ResidentComplaints from './ResidentComplaints.jsx';
 
-const ICONS = { BILLS: CreditCard, QR_PASS: QrCode, GATE_ACTIVITY: ScanLine, NOTICES: Bell, COMPLAINTS: Wrench };
+const ICONS = { BILLS: CreditCard, PARKING: Car, QR_PASS: QrCode, GATE_ACTIVITY: ScanLine, NOTICES: Bell, COMPLAINTS: Wrench };
+const MODULE_INFO = {
+  BILLS: ['View monthly maintenance bills, due dates and payment status', 'indigo'],
+  PARKING: ['See your assigned bike and car parking slots', 'violet'],
+  QR_PASS: ['Create a visitor QR gate pass', 'emerald'],
+  GATE_ACTIVITY: ['Review your visitors and gate activity', 'violet'],
+  NOTICES: ['Read the latest society announcements', 'amber'],
+  COMPLAINTS: ['Create and track helpdesk requests', 'rose'],
+};
 
 export default function ResidentPortal() {
   const [params, setParams] = useSearchParams();
   const { user } = useAuth();
   const { on } = useSocket();
-  const tab = RESIDENT_TABS.some((t) => t.id === params.get('tab')) ? params.get('tab') : 'BILLS';
+  const requestedTab = params.get('tab');
+  const tab = requestedTab === 'HOME' || RESIDENT_TABS.some((t) => t.id === requestedTab) ? requestedTab || 'HOME' : 'HOME';
   const [bills, setBills] = useState([]);
   const [notices, setNotices] = useState([]);
   const [complaints, setComplaints] = useState([]);
@@ -83,6 +93,7 @@ export default function ResidentPortal() {
   const pendingVisitors = visitors.filter((v) => v.approvalStatus === 'PENDING');
   const badges = {
     BILLS: unpaid.length,
+    PARKING: 0,
     NOTICES: notices.length,
     COMPLAINTS: complaints.filter((c) => c.status !== 'RESOLVED').length,
     GATE_ACTIVITY: visitors.length,
@@ -121,28 +132,7 @@ export default function ResidentPortal() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <SectionCard className="p-4 flex items-center gap-3">
-          <div className="h-10 w-10 shrink-0 rounded-xl border border-violet-100 bg-violet-50 text-violet-700 flex items-center justify-center">
-            <Bike className="h-5 w-5" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Your bike parking</p>
-            <p className="mt-0.5 font-mono text-lg font-black text-slate-900">{flatInfo?.allocatedBikeParking || 'Not assigned'}</p>
-            <p className="text-[10px] text-slate-500">PB slot · Flat {user?.flatId}</p>
-          </div>
-        </SectionCard>
-        <SectionCard className="p-4 flex items-center gap-3">
-          <div className="h-10 w-10 shrink-0 rounded-xl border border-amber-100 bg-amber-50 text-amber-700 flex items-center justify-center">
-            <Car className="h-5 w-5" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Your car parking</p>
-            <p className="mt-0.5 font-mono text-lg font-black text-slate-900">{flatInfo?.allocatedCarParking || 'Not assigned'}</p>
-            <p className="text-[10px] text-slate-500">PC slot · Flat {user?.flatId}</p>
-          </div>
-        </SectionCard>
-      </div>
+
 
       {pendingVisitors.length > 0 && (
         <div className="bg-amber-50 border border-amber-300 p-4 rounded-2xl shadow-xs animate-pulse flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -165,36 +155,53 @@ export default function ResidentPortal() {
         </div>
       )}
 
-      <div className="flex border-b border-slate-200 gap-2 overflow-x-auto pb-1 no-scrollbar">
-        {RESIDENT_TABS.map((item) => {
-          const Icon = ICONS[item.id];
-          const active = tab === item.id;
-          const badge = badges[item.id];
-          return (
-            <button
-              key={item.id}
-              onClick={() => setTab(item.id)}
-              className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl whitespace-nowrap transition-all ${
-                active ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-              }`}
-            >
-              <Icon className={`w-4 h-4 ${active ? 'text-white' : 'text-slate-500'}`} />
-              <span>{item.label}</span>
-              {badge > 0 && (
-                <span
-                  className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
-                    active ? 'bg-white text-indigo-700' : 'bg-indigo-100 text-indigo-700'
-                  }`}
-                >
-                  {badge}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
+      {tab !== 'HOME' && (
+        <div>
+          <Button variant="outline" icon={LayoutGrid} onClick={() => setTab('HOME')}>Back to Modules</Button>
+        </div>
+      )}
 
+      {tab === 'HOME' && (
+        <PortalModuleGrid
+          title="Resident Modules"
+          subtitle="Choose a card to open the service you need."
+          modules={RESIDENT_TABS.map((item) => ({
+            id: item.id,
+            label: item.label,
+            icon: ICONS[item.id],
+            description: MODULE_INFO[item.id]?.[0],
+            tone: MODULE_INFO[item.id]?.[1],
+            badge: badges[item.id],
+          }))}
+          onOpen={setTab}
+        />
+      )}
       {tab === 'BILLS' && <ResidentBills key={refreshKey} onChanged={() => setRefreshKey((k) => k + 1)} />}
+      {tab === 'PARKING' && (
+        <SectionCard className="p-4 sm:p-5">
+          <div className="mb-4">
+            <h2 className="text-sm font-bold text-slate-900">My Parking Assignments</h2>
+            <p className="mt-1 text-xs text-slate-500">These are the bike and car slots assigned by your Admin for Flat {user?.flatId}.</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="flex items-center gap-3 rounded-2xl border border-violet-100 bg-violet-50/60 p-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-violet-700"><Bike className="h-5 w-5" /></div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-violet-700">Bike parking · PB</p>
+                <p className="mt-1 font-mono text-xl font-black text-slate-900">{flatInfo ? flatInfo.allocatedBikeParking || 'Not assigned' : 'Loading…'}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 rounded-2xl border border-amber-100 bg-amber-50/60 p-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-amber-700"><Car className="h-5 w-5" /></div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700">Car parking · PC</p>
+                <p className="mt-1 font-mono text-xl font-black text-slate-900">{flatInfo ? flatInfo.allocatedCarParking || 'Not assigned' : 'Loading…'}</p>
+              </div>
+            </div>
+          </div>
+          <p className="mt-3 text-[11px] text-slate-500">If a slot changes, the assignments refresh automatically from your flat record.</p>
+        </SectionCard>
+      )}
       {tab === 'QR_PASS' && <ResidentQrPass key={refreshKey} />}
       {tab === 'GATE_ACTIVITY' && <ResidentGateActivity key={refreshKey} onChanged={() => setRefreshKey((k) => k + 1)} />}
       {tab === 'NOTICES' && <ResidentNotices key={refreshKey} />}
