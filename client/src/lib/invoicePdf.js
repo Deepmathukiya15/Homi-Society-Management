@@ -8,10 +8,9 @@ const safePart = (value) => String(value || '').replace(/[^a-z0-9-]+/gi, '-').re
 
 const loadSocietyIcon = async () => {
   try {
-    const response = await fetch(`${import.meta.env.BASE_URL}homi-icon.svg`);
+    const response = await fetch(`${import.meta.env.BASE_URL}homi-icon.png`);
     if (!response.ok) return null;
-    const svgText = await response.text();
-    const objectUrl = URL.createObjectURL(new Blob([svgText], { type: 'image/svg+xml' }));
+    const objectUrl = URL.createObjectURL(await response.blob());
     try {
       const image = new Image();
       image.src = objectUrl;
@@ -21,7 +20,11 @@ const loadSocietyIcon = async () => {
       canvas.height = 512;
       const context = canvas.getContext('2d');
       if (!context) return null;
-      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      // Preserve the supplied logo's aspect ratio while keeping a transparent square canvas.
+      const scale = Math.min(canvas.width / image.naturalWidth, canvas.height / image.naturalHeight);
+      const width = image.naturalWidth * scale;
+      const height = image.naturalHeight * scale;
+      context.drawImage(image, (canvas.width - width) / 2, (canvas.height - height) / 2, width, height);
       return canvas.toDataURL('image/png');
     } finally {
       URL.revokeObjectURL(objectUrl);

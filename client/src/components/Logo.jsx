@@ -2,7 +2,7 @@ export default function Logo({ variant = 'full', className = '' }) {
   if (variant === 'icon') {
     return (
       <img
-        src="/homi-icon.svg"
+        src={`${import.meta.env.BASE_URL}homi-icon.png`}
         alt="HOMI Emblem"
         className={`object-contain ${className}`}
         draggable="false"
@@ -21,7 +21,7 @@ export default function Logo({ variant = 'full', className = '' }) {
 
 export function LogoBadge({ className = '' }) {
   return (
-    <div className={`rounded-2xl overflow-hidden bg-slate-950 border border-blue-500/40 p-1 flex items-center justify-center shadow-xs ${className}`}>
+    <div className={`flex items-center justify-center ${className}`}>
       <Logo variant="icon" className="w-full h-full" />
     </div>
   );
