@@ -9,6 +9,7 @@ const ROLE_PILL = {
   RESIDENT: 'bg-indigo-50 text-indigo-700 border-indigo-200',
   ADMIN: 'bg-violet-50 text-violet-700 border-violet-200',
   GUARD: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  CLEANER: 'bg-amber-50 text-amber-700 border-amber-200',
 };
 
 const when = (value) => {
@@ -75,7 +76,7 @@ export default function AdminApprovals({ onChanged }) {
         <StatCard
           label="Approval Rule"
           value="Admin decides"
-          sub="residents & guards only"
+          sub="residents, guards & cleaning staff"
           icon={UserCheck}
           tone="indigo"
         />
@@ -83,7 +84,7 @@ export default function AdminApprovals({ onChanged }) {
 
       <SectionCard
         title="Registration Approval Queue"
-        subtitle="New residents and guards are created with PENDING status — they can sign in only after you approve them."
+        subtitle="New residents, guards and cleaning staff are PENDING — they can sign in only after admin approval."
         action={
           <div className="flex items-center gap-2">
             <Select
@@ -112,7 +113,7 @@ export default function AdminApprovals({ onChanged }) {
           <EmptyState
             icon={CheckCheck}
             title={filter === 'PENDING' ? 'No registrations waiting for approval' : 'Nothing in this list'}
-            message="When a resident or guard signs up, their request appears here for approval."
+            message="When a resident, guard or cleaning staff member registers, their request appears here for approval."
           />
         ) : (
           <div className="space-y-3">
@@ -135,7 +136,7 @@ export default function AdminApprovals({ onChanged }) {
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-sm font-bold text-slate-900">{u.name}</span>
-                      <Pill className={ROLE_PILL[u.role]}>{u.role}</Pill>
+                      <Pill className={ROLE_PILL[u.role]}>{u.role === 'CLEANER' ? 'CLEANING STAFF' : u.role}</Pill>
                       {u.flatId && <span className="text-[11px] font-mono font-bold text-slate-600">{u.flatId}</span>}
                       <Pill
                         className={

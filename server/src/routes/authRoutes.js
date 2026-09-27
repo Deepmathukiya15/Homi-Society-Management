@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getUsers, setApproval, setCommitteeMembership } from '../controllers/userController.js';
+import { getUsers, promoteCommitteeMemberToAdmin, setApproval, setCommitteeMembership } from '../controllers/userController.js';
 import { demoAccounts, demoLogin, login, me, register } from '../controllers/authController.js';
 import { authorize, protect } from '../middleware/auth.js';
 
@@ -15,4 +15,5 @@ router.get('/pending-users', protect, authorize('ADMIN'), getUsers);
 router.get('/users', protect, authorize('ADMIN'), getUsers);
 router.patch('/users/:id/approval', protect, authorize('ADMIN'), setApproval);
 router.patch('/users/:id/committee', protect, authorize('ADMIN'), setCommitteeMembership);
+router.patch('/users/:id/promote-admin', protect, authorize('ADMIN'), promoteCommitteeMemberToAdmin);
 export default router;

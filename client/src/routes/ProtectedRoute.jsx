@@ -2,7 +2,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 import BootSplash from '../components/BootSplash.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 
-export const homeFor = (role) => (role === 'ADMIN' ? '/admin' : role === 'GUARD' ? '/guard' : '/resident');
+export const homeFor = (role) => (role === 'ADMIN' ? '/admin' : role === 'GUARD' ? '/guard' : role === 'CLEANER' ? '/cleaner' : '/resident');
 
 export default function ProtectedRoute({ role, children }) {
   const { user, booting } = useAuth();

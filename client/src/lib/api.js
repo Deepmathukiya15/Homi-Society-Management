@@ -88,6 +88,7 @@ export const authApi = {
   setApproval: (userId, status) => api.patch(`/auth/users/${userId}/approval`, { status }).then((r) => r.data),
   setCommitteeMembership: (userId, isCommitteeMember) =>
     api.patch(`/auth/users/${userId}/committee`, { isCommitteeMember }).then((r) => r.data),
+  promoteCommitteeMember: (userId) => api.patch(`/auth/users/${userId}/promote-admin`).then((r) => r.data),
 };
 
 /** ── Society modules ──────────────────────────────────────────────────── */
@@ -138,6 +139,14 @@ export const complaintApi = {
   list: (params) => api.get('/complaints', { params }).then((r) => r.data),
   create: (payload) => api.post('/complaints', payload).then((r) => r.data),
   setStatus: (id, status, adminRemarks) => api.patch(`/complaints/${id}/status`, { status, adminRemarks }).then((r) => r.data),
+};
+
+export const payrollApi = {
+  mine: () => api.get('/payroll/mine').then((r) => r.data),
+  staff: () => api.get('/payroll/staff').then((r) => r.data),
+  setMonthlySalary: (userId, monthlySalary) => api.patch(`/payroll/staff/${userId}/salary`, { monthlySalary }).then((r) => r.data),
+  createRecord: (cleanerId, month) => api.post('/payroll/records', { cleanerId, month }).then((r) => r.data),
+  markPaid: (recordId, paymentMode, reference) => api.patch(`/payroll/records/${recordId}/paid`, { paymentMode, reference }).then((r) => r.data),
 };
 
 export const paymentApi = {

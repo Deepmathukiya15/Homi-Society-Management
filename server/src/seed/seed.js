@@ -58,6 +58,44 @@ async function seedUsers() {
   }
 }
 
+async function seedSalaryRecords() {
+  const cleaner = await db.User.findOne({ email: 'cleaner@homi.com' });
+  if (!cleaner) return;
+  const now = new Date();
+  const currentMonth = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
+  const previousMonthDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
+  const previousMonth = `${previousMonthDate.getUTCFullYear()}-${String(previousMonthDate.getUTCMonth() + 1).padStart(2, '0')}`;
+  const cleanerId = String(cleaner._id);
+  const amount = Number(cleaner.monthlySalary || 24000);
+
+  if (!(await db.SalaryPayment.findOne({ cleanerId, month: previousMonth }))) {
+    await db.SalaryPayment.create({
+      cleanerId,
+      cleanerName: cleaner.name,
+      cleanerStaffId: cleaner.staffId || 'CLN-001',
+      month: previousMonth,
+      amount,
+      status: 'PAID',
+      paymentMode: 'BANK_TRANSFER',
+      reference: `DEMO-UTR-${previousMonth.replace('-', '')}`,
+      paidAt: new Date(Date.UTC(previousMonthDate.getUTCFullYear(), previousMonthDate.getUTCMonth(), 28)),
+      createdBy: 'Seed Demo',
+      paidRecordedBy: 'Seed Demo',
+    });
+  }
+  if (!(await db.SalaryPayment.findOne({ cleanerId, month: currentMonth }))) {
+    await db.SalaryPayment.create({
+      cleanerId,
+      cleanerName: cleaner.name,
+      cleanerStaffId: cleaner.staffId || 'CLN-001',
+      month: currentMonth,
+      amount,
+      status: 'PENDING',
+      createdBy: 'Seed Demo',
+    });
+  }
+}
+
 /**
  * Seeds the FY 2026 maintenance ledger:
  *  - December 2025 carry-forward (a few flats) → OVERDUE
@@ -191,12 +229,13 @@ async function seedVisitors() {
 export async function runSeed({ force = false } = {}) {
   if (force) {
     clearSnapshot();
-    for (const model of ['User', 'Flat', 'Visitor', 'Bill', 'Notice', 'Complaint', 'GatePass', 'Meeting']) {
+    for (const model of ['User', 'Flat', 'Visitor', 'Bill', 'Notice', 'Complaint', 'GatePass', 'Meeting', 'SalaryPayment']) {
       await db[model].deleteMany({});
     }
   }
   await seedFlats();
   await seedUsers();
+  await seedSalaryRecords();
   await seedBills();
   await seedNotices();
   await seedComplaints();
@@ -227,6 +266,7 @@ export async function runSeed({ force = false } = {}) {
 export async function seedIfEmpty() {
   await seedFlats();
   await seedUsers();
+  await seedSalaryRecords();
   const bills = await db.Bill.countDocuments({});
   if (bills > 0) return { seeded: false, message: 'Society data already present' };
   const summary = await runSeed();
@@ -250,7 +290,7 @@ if (isDirectRun) {
     const summary = force ? await runSeed({ force: true }) : (await seedIfEmpty()).summary || (await runSeed());
     console.table(summary);
     console.log(
-      `Seed complete. Demo logins →  resident@homi.com / resident123 (Flat A-101)  •  admin@homi.com / admin123 (Flat A-201)  •  guard@homi.com / guard123  •  sample mobile: ${formatMobile('9876543210')}`
+      `Seed complete. Demo logins → resident@homi.com / resident123 (Flat A-101) • admin@homi.com / admin123 • guard@homi.com / guard123 • cleaner@homi.com / cleaner123 • sample mobile: ${formatMobile('9876543210')}`
     );
     process.exit(0);
   })().catch((err) => {

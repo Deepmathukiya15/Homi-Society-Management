@@ -16,7 +16,7 @@ export const env = {
   AUTO_SEED: nodeEnv !== 'production' && String(process.env.AUTO_SEED ?? 'true') === 'true',
   JWT_SECRET: process.env.JWT_SECRET || (nodeEnv === 'production' ? '' : DEFAULT_JWT_SECRET),
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '7d',
-  ADMIN_MASTER_CODE: process.env.ADMIN_MASTER_CODE || (nodeEnv === 'production' ? '' : 'ADM-001'),
+  SUPER_ADMIN_EMAIL: String(process.env.SUPER_ADMIN_EMAIL || 'admin@homi.com').trim().toLowerCase(),
   GUARD_MASTER_CODE: process.env.GUARD_MASTER_CODE || (nodeEnv === 'production' ? '' : 'SEC-001'),
   RAZORPAY_KEY_ID: process.env.RAZORPAY_KEY_ID || '',
   RAZORPAY_KEY_SECRET: process.env.RAZORPAY_KEY_SECRET || '',

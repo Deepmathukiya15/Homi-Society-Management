@@ -19,7 +19,7 @@ import { ROLE_META, SOS_CATEGORIES } from '../lib/constants.js';
 import { initials } from '../lib/format.js';
 import { visitorApi } from '../lib/api.js';
 
-const HOME_BY_ROLE = { ADMIN: '/admin', RESIDENT: '/resident', GUARD: '/guard' };
+const HOME_BY_ROLE = { ADMIN: '/admin', RESIDENT: '/resident', GUARD: '/guard', CLEANER: '/cleaner' };
 
 export default function TopHeader() {
   const navigate = useNavigate();
@@ -89,14 +89,16 @@ export default function TopHeader() {
             <span className="max-w-[210px] truncate">{statusLabel}</span>
           </div>
 
-          <button
-            onClick={() => setSosOpen(true)}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-black bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition-all active:scale-95 animate-siren"
-            title="Broadcast Emergency SOS to all guards and admin"
-          >
-            <Siren className="w-4 h-4" />
-            <span className="hidden sm:inline">SOS Panic</span>
-          </button>
+          {user?.role !== 'CLEANER' && (
+            <button
+              onClick={() => setSosOpen(true)}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-black bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition-all active:scale-95 animate-siren"
+              title="Broadcast Emergency SOS to all guards and admin"
+            >
+              <Siren className="w-4 h-4" />
+              <span className="hidden sm:inline">SOS Panic</span>
+            </button>
+          )}
 
           <div className="relative" ref={menuRef}>
             <button

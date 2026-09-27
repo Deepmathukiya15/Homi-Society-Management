@@ -1,19 +1,20 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, BadgeCheck, Clock, KeyRound, Lock, Mail, MapPin, UserCog, Users, ShieldAlert } from 'lucide-react';
+import { ArrowLeft, BadgeCheck, Clock, KeyRound, Lock, Mail, MapPin, Users, UserCog, ShieldAlert, Sparkles } from 'lucide-react';
 import Logo from '../components/Logo.jsx';
 import { Button, Field, FlatPicker, Input, MobileInput, StructureChips } from '../components/ui.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { authApi, flatApi } from '../lib/api.js';
-import { ROLES, ROLE_META, flatIdFor } from '../lib/constants.js';
+import { DEMO_ROLES, REGISTRATION_ROLES, ROLE_META, flatIdFor } from '../lib/constants.js';
 import { isValidMobile } from '../lib/validation.js';
 
 const DEFAULT_FLAT = { block: 'A', floor: 1, flatId: flatIdFor('A', 1, 1) };
 
-const ROLE_ICONS = { RESIDENT: Users, ADMIN: UserCog, GUARD: ShieldAlert };
+const ROLE_ICONS = { RESIDENT: Users, ADMIN: UserCog, GUARD: ShieldAlert, CLEANER: Sparkles };
 
 export default function Login() {
   const { login, register, demoLogin, loading } = useAuth();
   const [mode, setMode] = useState('LOGIN');
+  const [registrationStarted, setRegistrationStarted] = useState(false);
   const [role, setRole] = useState('RESIDENT');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -58,6 +59,7 @@ export default function Login() {
 
   const selectRole = (next) => {
     setRole(next);
+    setRegistrationStarted(true);
     setError('');
   };
 
@@ -80,6 +82,7 @@ export default function Login() {
 
   const switchMode = (next) => {
     setMode(next);
+    setRegistrationStarted(false);
     setError('');
     setPending(null);
   };
@@ -123,10 +126,10 @@ export default function Login() {
           familyMembers: role === 'RESIDENT' ? familyMembers.slice(0, Number(householdCount)).map((member) => member.trim()) : [],
           contactNumber,
           flatId: role === 'RESIDENT' ? flat.flatId : undefined,
-          securityCode: role === 'RESIDENT' ? undefined : securityCode,
+          securityCode: role === 'GUARD' ? securityCode : undefined,
           staffId: role === 'RESIDENT' ? undefined : staffId,
         });
-        // Residents & guards need admin approval before they can sign in.
+                // Every self-registered account waits for admin approval before sign-in.
         if (result?.pending) {
           setPending({ name: result.user?.name, role: result.user?.role, email: result.user?.email });
           setPassword('');
@@ -161,51 +164,48 @@ export default function Login() {
 
         <div className="bg-white border border-slate-200 rounded-3xl shadow-xs p-5 sm:p-6 space-y-5">
           {demoEnabled && (
-          <>
-          <div className="space-y-2.5">
-            <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 text-center">
-              1-Click Demo Evaluation Logins
+            <div className="space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-3.5">
+              <p className="text-center text-[10px] font-black uppercase tracking-wider text-slate-500">Demo Login — all portals</p>
+              <div className="grid grid-cols-2 gap-2">
+                {DEMO_ROLES.map((item) => {
+                  const Icon = ROLE_ICONS[item];
+                  const label = item === 'CLEANER' ? 'Cleaning Staff' : ROLE_META[item].label;
+                  return (
+                    <button
+                      key={item}
+                      type="button"
+                      disabled={loading}
+                      onClick={() => demoLogin(item).catch((err) => setError(err.message || 'Demo login failed'))}
+                      className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-bold transition-colors hover:shadow-xs disabled:opacity-50 ${ROLE_META[item].chip}`}
+                    >
+                      <Icon className="w-4 h-4" /> {label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-            <div className="grid grid-cols-3 gap-2">
-              {ROLES.map((item) => {
-                const Icon = ROLE_ICONS[item];
-                const meta = ROLE_META[item];
-                return (
-                  <button
-                    key={item}
-                    type="button"
-                    onClick={() => {
-                      selectRole(item);
-                      switchMode('LOGIN');
-                      demoLogin(item).catch((err) => setError(err.message));
-                    }}
-                    disabled={loading}
-                    className={`flex flex-col items-center gap-1.5 py-2.5 rounded-xl border text-[11px] font-bold transition-all active:scale-95 disabled:opacity-60 ${meta.chip} hover:shadow-xs`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    {meta.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="relative text-center">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-slate-200" />
-            </div>
-            <span className="relative bg-white px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              or use credentials
-            </span>
-          </div>
-          </>
           )}
+
+          <div className="flex bg-slate-100 p-1.5 rounded-2xl">
+            {['LOGIN', 'REGISTER'].map((item) => (
+              <button
+                key={item}
+                type="button"
+                onClick={() => switchMode(item)}
+                className={`flex-1 py-2 rounded-xl text-[11px] font-bold transition-all ${
+                  mode === item ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                {item === 'LOGIN' ? 'Sign In' : 'New Registration'}
+              </button>
+            ))}
+          </div>
 
           {mode === 'REGISTER' && (
           <div className="space-y-2.5">
             <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">Select Role</div>
             <div className="grid grid-cols-3 gap-1.5 bg-slate-100 p-1.5 rounded-2xl">
-              {ROLES.map((item) => {
+              {REGISTRATION_ROLES.map((item) => {
                 const Icon = ROLE_ICONS[item];
                 const active = role === item;
                 return (
@@ -224,23 +224,9 @@ export default function Login() {
               })}
             </div>
             <p className="text-[11px] text-slate-500 font-medium text-center">{ROLE_META[role].blurb}</p>
+            <p className="text-[10px] text-slate-400 text-center">Admin access is assigned by an existing admin only after committee membership.</p>
           </div>
           )}
-
-          <div className="flex bg-slate-100 p-1.5 rounded-2xl">
-            {['LOGIN', 'REGISTER'].map((item) => (
-              <button
-                key={item}
-                type="button"
-                onClick={() => switchMode(item)}
-                className={`flex-1 py-2 rounded-xl text-[11px] font-bold transition-all ${
-                  mode === item ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                {item === 'LOGIN' ? 'Sign In' : 'New Registration'}
-              </button>
-            ))}
-          </div>
 
           {pending ? (
             <div className="space-y-3.5">
@@ -249,7 +235,7 @@ export default function Login() {
                 <div className="space-y-1">
                   <h4 className="text-sm font-bold text-amber-900">Registration sent for admin approval</h4>
                   <p className="text-[11px] text-amber-800 font-medium leading-relaxed">
-                    Thanks <strong>{pending.name}</strong> — your <strong>{pending.role.toLowerCase()}</strong> account
+                    Thanks <strong>{pending.name}</strong> — your <strong>{pending.role === 'CLEANER' ? 'cleaning staff' : pending.role.toLowerCase()}</strong> account
                     is now in the society admin's approval queue. You will be able to sign in with{' '}
                     <span className="font-mono">{pending.email}</span> as soon as the admin approves it.
                   </p>
@@ -269,6 +255,11 @@ export default function Login() {
               >
                 Back to Sign In
               </Button>
+            </div>
+          ) : mode === 'REGISTER' && !registrationStarted ? (
+            <div className="rounded-2xl border border-indigo-100 bg-indigo-50/60 p-5 text-center">
+              <h3 className="text-sm font-bold text-slate-900">Choose a role to start registration</h3>
+              <p className="mt-1 text-xs text-slate-500">Select Resident, Guard, or Other above. The matching registration form will open.</p>
             </div>
           ) : (
           <form onSubmit={submit} className="space-y-3.5">
@@ -374,18 +365,15 @@ export default function Login() {
                         : `${availableFlats.length} of 60 flats are unregistered — flats that already have an account are hidden.`}
                     </p>
                   </div>
-                ) : (
+                ) : role === 'GUARD' ? (
                   <div className="grid grid-cols-1 gap-3.5">
-                    <Field
-                      label={role === 'ADMIN' ? 'Admin Master Security Code' : 'Guard Staff Pass Code'}
-                      hint={role === 'ADMIN' ? 'Demo master code: ADM-001' : 'Demo staff code: SEC-001'}
-                    >
+                    <Field label="Guard Staff Pass Code" hint="Demo staff code: SEC-001">
                       <div className="relative">
                         <KeyRound className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                         <Input
                           required
                           className="!pl-10"
-                          placeholder={role === 'ADMIN' ? 'ADM-001' : 'SEC-001'}
+                          placeholder="SEC-001"
                           value={securityCode}
                           onChange={(e) => setSecurityCode(e.target.value.toUpperCase())}
                         />
@@ -394,6 +382,10 @@ export default function Login() {
                     <Field label="Staff ID (Optional)">
                       <Input placeholder="SEC-014" value={staffId} onChange={(e) => setStaffId(e.target.value)} />
                     </Field>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+                    Cleaning staff accounts do not need a flat or guard pass code. The society admin will review this registration and set the monthly salary after approval.
                   </div>
                 )}
               </>

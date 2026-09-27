@@ -271,6 +271,7 @@ export const memoryModels = {
   Complaint: new MemoryModel('Complaint'),
   GatePass: new MemoryModel('GatePass'),
   Meeting: new MemoryModel('Meeting'),
+  SalaryPayment: new MemoryModel('SalaryPayment'),
 };
 
 export const resetMemoryStore = () => {

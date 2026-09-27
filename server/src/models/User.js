@@ -5,12 +5,13 @@ const userSchema = new mongoose.Schema(
     name: { type: String, required: true, trim: true },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     password: { type: String, required: true, select: false },
-    role: { type: String, enum: ['RESIDENT', 'ADMIN', 'GUARD'], default: 'RESIDENT' },
+    role: { type: String, enum: ['RESIDENT', 'ADMIN', 'GUARD', 'CLEANER'], default: 'RESIDENT' },
     isCommitteeMember: { type: Boolean, default: false },
     familyMembers: { type: [String], default: [] },
     contactNumber: { type: String, trim: true },
     flatId: { type: String, trim: true, uppercase: true }, // residents only, e.g. "A-101"
-    staffId: { type: String, trim: true }, // guards only, e.g. "SEC-001"
+    staffId: { type: String, trim: true }, // guard/cleaning staff identifier
+    monthlySalary: { type: Number, min: 0, default: 0 }, // cleaning staff monthly salary (INR)
     securityCode: { type: String, select: false }, // master passkey used at registration
     isActive: { type: Boolean, default: true },
     // Self-registered residents/guards land in PENDING and cannot sign in until an
@@ -34,6 +35,7 @@ userSchema.methods.toSafeJSON = function toSafeJSON() {
     contactNumber: this.contactNumber,
     flatId: this.flatId,
     staffId: this.staffId,
+    monthlySalary: Number(this.monthlySalary || 0),
     approvalStatus: this.approvalStatus || 'APPROVED',
     approvedBy: this.approvedBy,
     approvedAt: this.approvedAt,

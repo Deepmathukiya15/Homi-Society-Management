@@ -6,6 +6,7 @@ import Notice from './Notice.js';
 import Complaint from './Complaint.js';
 import GatePass from './GatePass.js';
 import Meeting from './Meeting.js';
+import SalaryPayment from './SalaryPayment.js';
 
-export { User, Flat, Visitor, Bill, Notice, Complaint, GatePass, Meeting };
-export const mongooseModels = { User, Flat, Visitor, Bill, Notice, Complaint, GatePass, Meeting };
+export { User, Flat, Visitor, Bill, Notice, Complaint, GatePass, Meeting, SalaryPayment };
+export const mongooseModels = { User, Flat, Visitor, Bill, Notice, Complaint, GatePass, Meeting, SalaryPayment };

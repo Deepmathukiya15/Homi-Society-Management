@@ -7,6 +7,7 @@ import noticeRoutes from './noticeRoutes.js';
 import complaintRoutes from './complaintRoutes.js';
 import paymentRoutes from './paymentRoutes.js';
 import meetingRoutes from './meetingRoutes.js';
+import payrollRoutes from './payrollRoutes.js';
 
 const router = Router();
 router.use('/auth', authRoutes);
@@ -17,5 +18,6 @@ router.use('/notices', noticeRoutes);
 router.use('/complaints', complaintRoutes);
 router.use('/payments', paymentRoutes);
 router.use('/meetings', meetingRoutes);
+router.use('/payroll', payrollRoutes);
 
 export default router;

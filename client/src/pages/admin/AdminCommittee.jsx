@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Search, ShieldCheck, UserPlus, UserRoundMinus, Users } from 'lucide-react';
+import { Search, ShieldCheck, UserCog, UserPlus, UserRoundMinus, Users } from 'lucide-react';
 import { EmptyState, Input, SectionCard } from '../../components/ui.jsx';
 import { authApi } from '../../lib/api.js';
+import { useAuth } from '../../context/AuthContext.jsx';
 import { useToast } from '../../context/ToastContext.jsx';
 
 export default function AdminCommittee() {
   const toast = useToast();
+  const { user: currentUser } = useAuth();
   const [residents, setResidents] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -47,6 +49,20 @@ export default function AdminCommittee() {
     }
   };
 
+  const promote = async (resident) => {
+    if (!resident.isCommitteeMember || !window.confirm(`Promote ${resident.name} to Admin? They must already be an approved committee member.`)) return;
+    setUpdatingId(resident._id);
+    try {
+      const result = await authApi.promoteCommitteeMember(resident._id);
+      toast.success('Admin Access Granted', result.message);
+      await load();
+    } catch (err) {
+      toast.alert('Could Not Promote Member', err.message);
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
   const assigned = residents.filter((resident) => resident.isCommitteeMember).length;
 
   return (
@@ -69,7 +85,7 @@ export default function AdminCommittee() {
 
       <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-4 text-xs text-indigo-900 leading-relaxed">
         Committee members sign in with their existing resident account. Their separate Committee Panel is limited to
-        publishing notices and scheduling or managing meetings; your Admin Panel and its billing controls remain admin-only.
+        publishing notices and scheduling or managing meetings; your Admin Panel and its billing controls remain admin-only. Only the designated society owner can promote a committee member to Admin.
       </div>
 
       {loading ? (
@@ -88,15 +104,28 @@ export default function AdminCommittee() {
                 <p className="text-xs text-slate-500 truncate mt-1">{resident.email}</p>
                 <p className="text-[11px] text-slate-500 mt-0.5">Flat <span className="font-mono font-bold">{resident.flatId || '—'}</span></p>
               </div>
-              <button
-                type="button"
-                onClick={() => toggle(resident)}
-                disabled={updatingId === resident._id}
-                className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-colors disabled:opacity-50 ${resident.isCommitteeMember ? 'border-rose-200 text-rose-700 hover:bg-rose-50' : 'border-violet-200 text-violet-700 hover:bg-violet-50'}`}
-              >
-                {resident.isCommitteeMember ? <UserRoundMinus className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
-                {updatingId === resident._id ? 'Saving…' : resident.isCommitteeMember ? 'Remove' : 'Add'}
-              </button>
+              <div className="flex flex-wrap justify-end gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => toggle(resident)}
+                  disabled={updatingId === resident._id}
+                  className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-colors disabled:opacity-50 ${resident.isCommitteeMember ? 'border-rose-200 text-rose-700 hover:bg-rose-50' : 'border-violet-200 text-violet-700 hover:bg-violet-50'}`}
+                >
+                  {resident.isCommitteeMember ? <UserRoundMinus className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
+                  {updatingId === resident._id ? 'Saving…' : resident.isCommitteeMember ? 'Remove' : 'Add'}
+                </button>
+                {resident.isCommitteeMember && currentUser?.canPromoteAdmins && (
+                  <button
+                    type="button"
+                    onClick={() => promote(resident)}
+                    disabled={updatingId === resident._id}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-violet-200 bg-violet-50 text-violet-800 hover:bg-violet-100 transition-colors disabled:opacity-50"
+                    title="Only committee members can be promoted to admin"
+                  >
+                    <UserCog className="w-4 h-4" /> {updatingId === resident._id ? 'Saving…' : 'Make Admin'}
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>

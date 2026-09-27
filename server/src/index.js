@@ -81,7 +81,6 @@ const assertProductionConfig = () => {
   const unsafe = [];
   if (!env.MONGODB_URI) unsafe.push('MONGODB_URI');
   if (!env.JWT_SECRET || env.JWT_SECRET === 'homi_super_secret_change_me_in_production') unsafe.push('a unique JWT_SECRET');
-  if (!env.ADMIN_MASTER_CODE || env.ADMIN_MASTER_CODE === 'ADM-001') unsafe.push('a unique ADMIN_MASTER_CODE');
   if (!env.GUARD_MASTER_CODE || env.GUARD_MASTER_CODE === 'SEC-001') unsafe.push('a unique GUARD_MASTER_CODE');
   if (unsafe.length) throw new Error(`Unsafe production configuration. Set ${unsafe.join(', ')} before starting.`);
 };

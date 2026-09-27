@@ -11,6 +11,7 @@ import AdminPortal from './pages/admin/AdminPortal.jsx';
 import ResidentPortal from './pages/resident/ResidentPortal.jsx';
 import GuardPortal from './pages/guard/GuardPortal.jsx';
 import CommitteePortal from './pages/committee/CommitteePortal.jsx';
+import CleanerPortal from './pages/cleaner/CleanerPortal.jsx';
 import ProtectedRoute, { homeFor } from './routes/ProtectedRoute.jsx';
 
 function Shell() {
@@ -47,6 +48,14 @@ function Shell() {
           element={
             <ProtectedRoute role="GUARD">
               <GuardPortal />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/cleaner/*"
+          element={
+            <ProtectedRoute role="CLEANER">
+              <CleanerPortal />
             </ProtectedRoute>
           }
         />

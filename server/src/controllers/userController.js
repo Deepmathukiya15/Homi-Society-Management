@@ -1,6 +1,7 @@
 import { db, toSafeUser } from '../store/index.js';
 import { asyncHandler } from '../utils/helpers.js';
 import { emitToRoom } from '../realtime/socket.js';
+import { env } from '../config/env.js';
 
 const APPROVAL_STATES = ['PENDING', 'APPROVED', 'REJECTED'];
 
@@ -63,6 +64,38 @@ export const setCommitteeMembership = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     message: `${updated.name} ${updated.isCommitteeMember ? 'added to' : 'removed from'} the society committee`,
+    user: toSafeUser(updated),
+  });
+});
+
+/** Promote an approved committee resident to ADMIN. Self-registration cannot grant admin access. */
+export const promoteCommitteeMemberToAdmin = asyncHandler(async (req, res) => {
+  if (String(req.user.email || '').toLowerCase() !== env.SUPER_ADMIN_EMAIL) {
+    res.status(403);
+    throw new Error('Only the designated society owner admin can grant Admin access');
+  }
+  const user = await db.User.findById(req.params.id);
+  if (!user) {
+    res.status(404);
+    throw new Error('User account not found');
+  }
+  if (user.role !== 'RESIDENT' || (user.approvalStatus || 'APPROVED') !== 'APPROVED') {
+    res.status(400);
+    throw new Error('Only an approved resident can be promoted');
+  }
+  if (!user.isCommitteeMember) {
+    res.status(400);
+    throw new Error('Add this approved resident to the committee before promoting them to admin');
+  }
+
+  const updated = await db.User.findByIdAndUpdate(
+    user._id,
+    { $set: { role: 'ADMIN', isCommitteeMember: true } },
+    { new: true }
+  );
+  res.json({
+    success: true,
+    message: `${updated.name} is now an admin (committee membership retained)`,
     user: toSafeUser(updated),
   });
 });

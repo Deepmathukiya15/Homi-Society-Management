@@ -13,6 +13,7 @@ import {
   Loader2,
   UserCheck,
   Users,
+  Sparkles,
 } from 'lucide-react';
 import { LogoBadge } from '../../components/Logo.jsx';
 import { Button } from '../../components/ui.jsx';
@@ -29,6 +30,7 @@ import AdminGateFeed from './AdminGateFeed.jsx';
 import AdminNotices from './AdminNotices.jsx';
 import AdminComplaints from './AdminComplaints.jsx';
 import AdminCommittee from './AdminCommittee.jsx';
+import AdminPayroll from './AdminPayroll.jsx';
 
 const ICONS = {
   OVERVIEW: Gauge,
@@ -39,6 +41,7 @@ const ICONS = {
   NOTICES: Bell,
   COMMITTEE: Users,
   COMPLAINTS: Wrench,
+  STAFF_PAYROLL: Sparkles,
 };
 
 export default function AdminPortal() {
@@ -226,6 +229,7 @@ export default function AdminPortal() {
         {tab === 'NOTICES' && <AdminNotices key={refreshKey} openSignal={noticeSignal} />}
         {tab === 'COMMITTEE' && <AdminCommittee key={refreshKey} />}
         {tab === 'COMPLAINTS' && <AdminComplaints key={refreshKey} />}
+        {tab === 'STAFF_PAYROLL' && <AdminPayroll key={refreshKey} />}
 
         <footer className="mt-8 pt-5 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-2 text-[10px] text-slate-400 font-medium">
           <span>Integrated Home &amp; Community Management Solutions</span>

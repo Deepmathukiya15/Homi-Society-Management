@@ -14,13 +14,13 @@ import { authorize, protect } from '../middleware/auth.js';
 
 const router = Router();
 router.use(protect);
-router.get('/logs', getVisitorLogs);
+router.get('/logs', authorize('RESIDENT', 'ADMIN', 'GUARD'), getVisitorLogs);
 router.get('/stats', authorize('ADMIN', 'GUARD'), visitorStats);
-router.get('/passes', getMyPasses);
+router.get('/passes', authorize('RESIDENT'), getMyPasses);
 router.post('/check-in', authorize('GUARD', 'ADMIN'), checkInVisitor);
 router.post('/pre-approve', authorize('RESIDENT'), createGatePass);
 router.post('/validate-pass', authorize('GUARD', 'ADMIN'), validatePass);
-router.post('/sos', raiseSOS);
+router.post('/sos', authorize('RESIDENT', 'ADMIN', 'GUARD'), raiseSOS);
 router.patch('/:id/decision', authorize('RESIDENT', 'ADMIN', 'GUARD'), decideVisitor);
 router.patch('/:id/check-out', authorize('GUARD', 'ADMIN'), checkOutVisitor);
 export default router;

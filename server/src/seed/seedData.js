@@ -135,6 +135,15 @@ export const USERS = [
     contactNumber: '9099922222',
     staffId: 'SEC-001',
   },
+  {
+    name: 'Meena Parmar',
+    email: 'cleaner@homi.com',
+    password: 'cleaner123',
+    role: 'CLEANER',
+    contactNumber: '9876543215',
+    staffId: 'CLN-001',
+    monthlySalary: 24000,
+  },
 ];
 
 /** Flats that carry unpaid dues in the seeded ledger */

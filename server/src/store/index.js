@@ -53,6 +53,7 @@ export const toSafeUser = (doc) => {
     contactNumber: user.contactNumber,
     flatId: user.flatId,
     staffId: user.staffId,
+    monthlySalary: Number(user.monthlySalary || 0),
     approvalStatus: user.approvalStatus || 'APPROVED',
     approvedBy: user.approvedBy,
     approvedAt: user.approvedAt,

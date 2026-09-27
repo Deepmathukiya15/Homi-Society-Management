@@ -1,4 +1,5 @@
 import bcrypt from 'bcryptjs';
+import crypto from 'node:crypto';
 import { db, findUserForLogin, toSafeUser } from '../store/index.js';
 import { signToken } from '../utils/tokens.js';
 import { asyncHandler, parseFlatId } from '../utils/helpers.js';
@@ -10,9 +11,14 @@ export const DEMO_ACCOUNTS = {
   RESIDENT: { email: 'resident@homi.com', password: 'resident123', label: 'Resident (Flat A-101)' },
   ADMIN: { email: 'admin@homi.com', password: 'admin123', label: 'Admin / Secretary' },
   GUARD: { email: 'guard@homi.com', password: 'guard123', label: 'Gate Security Guard' },
+  CLEANER: { email: 'cleaner@homi.com', password: 'cleaner123', label: 'Cleaning Staff' },
 };
 
-const withDisplayMobile = (user) => ({ ...user, contactNumber: user?.contactNumber || '' });
+const withDisplayMobile = (user) => ({
+  ...user,
+  contactNumber: user?.contactNumber || '',
+  canPromoteAdmins: String(user?.email || '').toLowerCase() === env.SUPER_ADMIN_EMAIL,
+});
 
 const authPayload = (user, message) => ({
   success: true,
@@ -41,9 +47,10 @@ export const register = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error('Password must be between 6 and 128 characters');
   }
-  if (!['RESIDENT', 'ADMIN', 'GUARD'].includes(normalizedRole)) {
+  // Admin accounts are never self-registered. Existing admins may promote an approved committee member.
+  if (!['RESIDENT', 'GUARD', 'CLEANER'].includes(normalizedRole)) {
     res.status(400);
-    throw new Error('Invalid role selected');
+    throw new Error('Choose Resident, Guard, or Other (Cleaning Staff). Admin access is assigned by an existing admin.');
   }
 
   let residentFamilyMembers = [];
@@ -69,11 +76,7 @@ export const register = asyncHandler(async (req, res) => {
     throw new Error('An account with this email already exists');
   }
 
-  // Master passkeys protect privileged self-registration (RBAC hardening)
-  if (role === 'ADMIN' && securityCode !== env.ADMIN_MASTER_CODE) {
-    res.status(403);
-    throw new Error('Invalid Admin Master Security Code');
-  }
+  // Guard registrations require the society's guard passcode; admin registration is disabled.
   if (role === 'GUARD' && securityCode !== env.GUARD_MASTER_CODE) {
     res.status(403);
     throw new Error('Invalid Guard Staff Pass Code');
@@ -123,11 +126,16 @@ export const register = asyncHandler(async (req, res) => {
     familyMembers: residentFamilyMembers,
     contactNumber: mobile.value,
     flatId: role === 'RESIDENT' ? String(flatId).toUpperCase() : undefined,
-    staffId: role !== 'RESIDENT' ? staffId || securityCode : undefined,
-    securityCode: role !== 'RESIDENT' ? securityCode : undefined,
+    staffId: role === 'GUARD'
+      ? String(staffId || securityCode || '').trim()
+      : role === 'CLEANER'
+        ? String(staffId || `CLN-${crypto.randomBytes(3).toString('hex').toUpperCase()}`).trim()
+        : undefined,
+    securityCode: role === 'GUARD' ? securityCode : undefined,
+    monthlySalary: role === 'CLEANER' ? 0 : undefined,
     isActive: true,
-    // Residents and guards must be approved by the society admin before signing in.
-    approvalStatus: role === 'RESIDENT' || role === 'GUARD' ? 'PENDING' : 'APPROVED',
+    // Every self-registered non-admin account awaits the existing admin's approval.
+    approvalStatus: 'PENDING',
   });
 
   if (user.approvalStatus === 'PENDING') {
@@ -169,7 +177,7 @@ export const login = asyncHandler(async (req, res) => {
     throw new Error('Authentication failed. Please check details.');
   }
 
-  // Admin approval gate — self-registered residents/guards cannot sign in yet.
+  // Admin approval gate — self-registered residents, guards and cleaners cannot sign in yet.
   const approval = user.approvalStatus || 'APPROVED';
   if (approval === 'PENDING') {
     res.status(403);

@@ -1,4 +1,7 @@
-export const ROLES = ['RESIDENT', 'ADMIN', 'GUARD'];
+export const DEMO_ROLES = ['RESIDENT', 'ADMIN', 'GUARD', 'CLEANER'];
+export const REGISTRATION_ROLES = ['RESIDENT', 'GUARD', 'CLEANER'];
+// Backward-compatible alias for the demo login chips.
+export const ROLES = DEMO_ROLES;
 
 export const ROLE_META = {
   RESIDENT: {
@@ -24,6 +27,14 @@ export const ROLE_META = {
     chip: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     dot: 'bg-emerald-500',
     blurb: 'Visitor check-ins & QR pass scanning',
+  },
+  CLEANER: {
+    label: 'Other',
+    title: 'Cleaning Staff',
+    accent: 'amber',
+    chip: 'bg-amber-50 text-amber-700 border-amber-200',
+    dot: 'bg-amber-500',
+    blurb: 'Cleaning staff registration & salary records',
   },
 };
 
@@ -65,6 +76,7 @@ export const ADMIN_TABS = [
   { id: 'NOTICES', label: 'Digital Notices' },
   { id: 'COMMITTEE', label: 'Committee Members' },
   { id: 'COMPLAINTS', label: 'Helpdesk Tickets' },
+  { id: 'STAFF_PAYROLL', label: 'Cleaning Staff & Salaries' },
 ];
 
 export const ADMIN_TITLES = {
@@ -76,6 +88,7 @@ export const ADMIN_TITLES = {
   NOTICES: ['Digital Notice Board Management', 'Khodaldham Society • Admin Control Panel'],
   COMMITTEE: ['Society Committee Members', 'Choose approved residents who can manage notices and meetings'],
   COMPLAINTS: ['Resident Helpdesk & Grievance Tickets', 'Khodaldham Society • Admin Control Panel'],
+  STAFF_PAYROLL: ['Cleaning Staff & Monthly Salaries', 'Set monthly salary and record manual payment status'],
 };
 
 export const RESIDENT_TABS = [
